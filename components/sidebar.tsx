@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { BookOpen, Home, Image, LogOut, MessageSquare, PenTool, Settings, User, Video } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -15,6 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useAuth } from "@/lib/authContext"
 
 const navItems = [
   { name: "Dashboard", href: "/", icon: Home },
@@ -26,17 +27,28 @@ const navItems = [
   { name: "Collaboration", href: "/collaboration", icon: MessageSquare },
 ]
 
+const userItems = [
+  { name: "Profile", href: "/settings", icon: User },
+  { name: "Settings", href: "/settings", icon: Settings },
+]
+
 export default function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+  const { logout } = useAuth()
   const [isCollapsed, setIsCollapsed] = useState(false)
 
+  const handleLogout = async () => {
+    try {
+      await logout()
+      router.push("/login")
+    } catch (error) {
+      console.error("Logout failed", error)
+    }
+  }
+
   return (
-    <div
-      className={cn(
-        "flex h-screen flex-col border-r bg-background transition-all duration-300",
-        isCollapsed ? "w-16" : "w-64",
-      )}
-    >
+    <div className={cn("flex h-screen flex-col border-r bg-background transition-all duration-300", isCollapsed ? "w-16" : "w-64")}>
       <div className="flex h-14 items-center border-b px-3">
         {!isCollapsed && <h1 className="text-lg font-semibold">EduPlatform</h1>}
         <Button
@@ -45,7 +57,7 @@ export default function Sidebar() {
           className={cn("ml-auto", isCollapsed && "mx-auto")}
           onClick={() => setIsCollapsed(!isCollapsed)}
         >
-          {isCollapsed ? <PenTool className="h-5 w-5" /> : <PenTool className="h-5 w-5" />}
+          <PenTool className="h-5 w-5" />
           <span className="sr-only">Toggle Sidebar</span>
         </Button>
       </div>
@@ -82,18 +94,21 @@ export default function Sidebar() {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <User className="mr-2 h-4 w-4" />
-              <span>Profile</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
-            </DropdownMenuItem>
+            {userItems.map((item) => (
+              <DropdownMenuItem key={item.name} asChild>
+                <Link
+                  href={item.href}
+                  className="flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+                >
+                  <item.icon className="mr-2 h-4 w-4" />
+                  {!isCollapsed && <span>{item.name}</span>}
+                </Link>
+              </DropdownMenuItem>
+            ))}
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout} className="flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground cursor-pointer">
               <LogOut className="mr-2 h-4 w-4" />
-              <span>Log out</span>
+              {!isCollapsed && <span>Logout</span>}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -101,4 +116,3 @@ export default function Sidebar() {
     </div>
   )
 }
-

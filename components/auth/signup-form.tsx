@@ -1,47 +1,76 @@
-"use client"
+"use client";
 
-import type React from "react"
-
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { useAuth } from "@/lib/authContext"
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from "@/lib/authContext";
+import axios from "axios";
 
 export default function SignupForm() {
-  const [username, setUsername] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [error, setError] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
-  const { signup } = useAuth()
+  const [user, setUser] = useState({
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
+  interface User {
+    username: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+  }
 
-    if (password !== confirmPassword) {
-      setError("Passwords do not match")
-      return
+  interface SignupResponse {
+    data: {
+      message: string;
+    };
+  }
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+
+    if (!user.username || !user.email || !user.password || !user.confirmPassword) {
+      setError("Please fill all fields!");
+      return;
     }
 
-    setIsLoading(true)
+    if (user.password.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      return;
+    }
+
+    if (user.password !== user.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
-      await signup(username, email, password)
-      router.push("/login?registered=true")
+      const { data }: SignupResponse = await axios.post(`/api/auth/signup`, {
+        username: user.username,
+        email: user.email,
+        password: user.password,
+      });
+      console.log("User registered:", data);
+      alert("Signup successful!");
+      router.push("/login?registered=true");
     } catch (err: any) {
-      setError(err.message || "Signup failed. Please try again.")
+      setError(err.response?.data?.error || "Signup failed. Please try again.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <Card className="w-full max-w-md">
@@ -60,8 +89,8 @@ export default function SignupForm() {
             <Label htmlFor="username">Username</Label>
             <Input
               id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={user.username}
+              onChange={(e) => setUser({ ...user, username: e.target.value })}
               placeholder="Enter your username"
               required
             />
@@ -71,8 +100,8 @@ export default function SignupForm() {
             <Input
               id="email"
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={user.email}
+              onChange={(e) => setUser({ ...user, email: e.target.value })}
               placeholder="Enter your email"
               required
             />
@@ -82,8 +111,8 @@ export default function SignupForm() {
             <Input
               id="password"
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={user.password}
+              onChange={(e) => setUser({ ...user, password: e.target.value })}
               placeholder="Create a password"
               required
             />
@@ -93,8 +122,8 @@ export default function SignupForm() {
             <Input
               id="confirmPassword"
               type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              value={user.confirmPassword}
+              onChange={(e) => setUser({ ...user, confirmPassword: e.target.value })}
               placeholder="Confirm your password"
               required
             />
@@ -113,6 +142,5 @@ export default function SignupForm() {
         </p>
       </CardFooter>
     </Card>
-  )
+  );
 }
-
