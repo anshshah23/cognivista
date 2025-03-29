@@ -31,7 +31,6 @@ const userItems = [
   { name: "Profile", href: "/settings", icon: User },
   { name: "Settings", href: "/settings", icon: Settings },
 ]
-
 export default function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
@@ -48,8 +47,12 @@ export default function Sidebar() {
   }
 
   return (
-    <div className={cn("flex h-screen flex-col border-r bg-background transition-all duration-300", isCollapsed ? "w-16" : "w-64")}>
-      <div className="flex h-14 items-center border-b px-3">
+    <div className={cn(
+      "flex flex-col h-screen w-64 border-r bg-background transition-all duration-300",
+      isCollapsed ? "w-12 sm:w-16" : "w-screen sm:w-64"
+    )}>
+      {/* Header Section */}
+      <div className="flex h-14 items-center border-b px-3 shrink-0">
         {!isCollapsed && <h1 className="text-lg font-semibold">EduPlatform</h1>}
         <Button
           variant="ghost"
@@ -61,7 +64,9 @@ export default function Sidebar() {
           <span className="sr-only">Toggle Sidebar</span>
         </Button>
       </div>
-      <nav className="flex-1 overflow-auto p-2">
+
+      {/* Navigation (Prevents Scrolling) */}
+      <nav className="flex-1 px-2 py-4 overflow-hidden">
         <ul className="space-y-2">
           {navItems.map((item) => (
             <li key={item.name}>
@@ -73,22 +78,24 @@ export default function Sidebar() {
                   isCollapsed && "justify-center px-0",
                 )}
               >
-                <item.icon className={cn("h-5 w-5", isCollapsed ? "mr-0" : "mr-2")} />
-                {!isCollapsed && <span>{item.name}</span>}
+                <item.icon className="h-5 w-5" />
+                {!isCollapsed && <span className="ml-3">{item.name}</span>}
               </Link>
             </li>
           ))}
         </ul>
       </nav>
-      <div className="border-t p-3">
+
+      {/* User Profile Section (Fixed at Bottom) */}
+      <div className="border-t p-3 shrink-0">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="w-full justify-start">
-              <Avatar className="h-6 w-6 mr-2">
+            <Button variant="ghost" className={`w-full flex ${isCollapsed ? 'justify-center':'justify-start'} items-center`}>
+              <Avatar className="h-6 w-6">
                 <AvatarImage src="/placeholder.svg" />
                 <AvatarFallback>U</AvatarFallback>
               </Avatar>
-              {!isCollapsed && <span>User Profile</span>}
+              {!isCollapsed && <span className="ml-3">User Profile</span>}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
@@ -101,14 +108,14 @@ export default function Sidebar() {
                   className="flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
                 >
                   <item.icon className="mr-2 h-4 w-4" />
-                  {!isCollapsed && <span>{item.name}</span>}
+                  <span>{item.name}</span>
                 </Link>
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground cursor-pointer">
+            <DropdownMenuItem onClick={handleLogout} className="cursor-pointer flex items-center px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground">
               <LogOut className="mr-2 h-4 w-4" />
-              {!isCollapsed && <span>Logout</span>}
+              <span>Logout</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

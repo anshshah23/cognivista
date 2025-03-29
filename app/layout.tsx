@@ -11,22 +11,20 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Educational Platform",
   description: "Interactive learning platform with collaborative features",
-    generator: 'v0.dev'
+  generator: "v0.dev",
 }
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className="h-screen w-screen overflow-hidden">
         <AuthProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
             <div className="flex h-screen">
               <Sidebar />
-              <main className="flex-1 overflow-auto">{children}</main>
+              <main className="flex-1 h-screen overflow-y-auto">{children}</main>
             </div>
           </ThemeProvider>
         </AuthProvider>
@@ -34,7 +32,3 @@ export default function RootLayout({
     </html>
   )
 }
-
-
-
-import './globals.css'

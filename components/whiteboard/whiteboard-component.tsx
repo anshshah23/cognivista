@@ -258,157 +258,196 @@ export default function WhiteboardComponent () {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <Card className="p-4">
+    <div className='flex flex-col'>
+      <Card className='p-1 md:p-4'>
         {/* Toolbar Tabs */}
-        <div className="flex flex-wrap gap-2 mb-4">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="mb-4">
-              <TabsTrigger value="draw" onClick={() => handleToolSelect('draw')}>
-                <Pencil className="h-4 w-4 mr-2" />
-                Draw
-              </TabsTrigger>
-              <TabsTrigger value="erase" onClick={() => handleToolSelect('erase')}>
-                <Eraser className="h-4 w-4 mr-2" />
-                Erase
-              </TabsTrigger>
-              <TabsTrigger value="select" onClick={() => handleToolSelect('select')}>
-                <Hand className="h-4 w-4 mr-2" />
-                Select
-              </TabsTrigger>
-              <TabsTrigger value="shape" onClick={() => handleToolSelect('shape')}>
-                <Square className="h-4 w-4 mr-2" />
-                Shapes
-              </TabsTrigger>
-              <TabsTrigger value="text" onClick={() => handleToolSelect('text')}>
-                <Type className="h-4 w-4 mr-2" />
-                Text
-              </TabsTrigger>
-              <TabsTrigger value="background" onClick={() => handleToolSelect('background')}>
-                <PaintBucket className="h-4 w-4 mr-2" />
-                Background
-              </TabsTrigger>
+        <div className='flex flex-wrap'>
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className='w-full'
+          >
+            <TabsList className='m-0 w-full md:justify-start'>
+              {['draw', 'erase', 'select', 'shape', 'text', 'background'].map(
+                tool => (
+                  <TabsTrigger
+                    key={tool}
+                    value={tool}
+                    className='flex items-center justify-center  h-8 p-2 mx-1 my-2'
+                    onClick={() => handleToolSelect(tool)}
+                  >
+                    {tool === 'draw' && (
+                      <Pencil className='h-3 md:h-4 w-3 md:w-4 m-0 md:mr-2' />
+                    )}
+                    {tool === 'erase' && (
+                      <Eraser className='h-3 md:h-4 w-3 md:w-4 m-0 md:mr-2' />
+                    )}
+                    {tool === 'select' && (
+                      <Hand className='h-3 md:h-4 w-3 md:w-4 m-0 md:mr-2' />
+                    )}
+                    {tool === 'shape' && (
+                      <Square className='h-3 md:h-4 w-3 md:w-4 m-0 md:mr-2' />
+                    )}
+                    {tool === 'text' && (
+                      <Type className='h-3 md:h-4 w-3 md:w-4 m-0 md:mr-2' />
+                    )}
+                    {tool === 'background' && (
+                      <PaintBucket className='h-3 md:h-4 w-3 md:w-4 m-0 md:mr-2' />
+                    )}
+                    <span className='hidden md:block'>
+                      {tool.charAt(0).toUpperCase() + tool.slice(1)}
+                    </span>
+                  </TabsTrigger>
+                )
+              )}
+              {/* Add more tabs as needed */}
+              {/* Draw Tab */}
             </TabsList>
-  
-            {/* Draw Tab */}
-            <TabsContent value="draw" className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Brush Size:</span>
+            <TabsContent value='draw' className='flex items-center gap-4'>
+              <div className='flex items-center gap-2'>
+                <span className='text-sm font-medium'>Brush Size:</span>
                 <Slider
                   value={[brushSize]}
                   min={1}
                   max={50}
                   step={1}
-                  className="w-40"
+                  className='w-40'
                   onValueChange={([value]) => setBrushSize(value)}
                 />
-                <span className="text-sm">{brushSize}px</span>
+                <span className='text-sm'>{brushSize}px</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Color:</span>
+              <div className='flex items-center gap-2'>
+                <span className='text-sm font-medium'>Color:</span>
                 <ColorPicker
                   color={tabColors.draw}
-                  onChange={color => setTabColors(prev => ({ ...prev, draw: color }))}
+                  onChange={color =>
+                    setTabColors(prev => ({ ...prev, draw: color }))
+                  }
                 />
               </div>
             </TabsContent>
-  
+
             {/* Erase Tab */}
-            <TabsContent value="erase" className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Eraser Size:</span>
+            <TabsContent value='erase' className='flex items-center gap-4'>
+              <div className='flex items-center gap-2'>
+                <span className='text-sm font-medium'>Eraser Size:</span>
                 <Slider
                   value={[eraserSize]}
                   min={1}
                   max={50}
                   step={1}
-                  className="w-40"
+                  className='w-40'
                   onValueChange={([value]) => setEraserSize(value)}
                 />
-                <span className="text-sm">{eraserSize}px</span>
+                <span className='text-sm'>{eraserSize}px</span>
               </div>
             </TabsContent>
-  
+
             {/* Shape Tab */}
-            <TabsContent value="shape" className="flex items-center gap-4">
-              <Button variant="outline" onClick={() => addShape("rect")}>
-                <Square className="h-4 w-4 mr-2" />
-                Rectangle
-              </Button>
-              <Button variant="outline" onClick={() => addShape("circle")}>
-                <Circle className="h-4 w-4 mr-2" />
-                Circle
-              </Button>
-              <div className="flex items-center gap-2 ml-4">
-                <span className="text-sm font-medium">Color:</span>
-                <ColorPicker color={tabColors.shape} onChange={color => setTabColors(prev => ({ ...prev, shape: color }))} />
+            <TabsContent value='shape' className='flex items-center gap-4'>
+              <div className='flex flex-col md:flex-row items-center w-full md:w-max gap-2'>
+                <Button variant='outline' className='w-full justify-start' onClick={() => addShape('rect')}>
+                  <Square className='h-4 w-4 mr-2' />
+                  Rectangle
+                </Button>
+                <Button variant='outline' className='w-full justify-start' onClick={() => addShape('circle')}>
+                  <Circle className='h-4 w-4 mr-2' />
+                  Circle
+                </Button>
+                <div className='flex items-center w-full gap-2 ml-4'>
+                  <span className='text-sm font-medium'>Color:</span>
+                  <ColorPicker
+                    color={tabColors.shape}
+                    onChange={color =>
+                      setTabColors(prev => ({ ...prev, shape: color }))
+                    }
+                  />
+                </div>
               </div>
             </TabsContent>
-  
+
             {/* Text Tab */}
-            <TabsContent value="text" className="flex items-center gap-4">
+            <TabsContent value='text' className='flex items-center gap-4'>
               <Button onClick={addText}>Add Text</Button>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Text Color:</span>
+              <div className='flex items-center gap-2'>
+                <span className='text-sm font-medium'>Text Color:</span>
                 <ColorPicker
                   color={tabColors.text}
-                  onChange={color => setTabColors(prev => ({ ...prev, text: color }))}
+                  onChange={color =>
+                    setTabColors(prev => ({ ...prev, text: color }))
+                  }
                 />
               </div>
             </TabsContent>
-  
+
             {/* Background Tab */}
-            <TabsContent value="background" className="flex items-center gap-4">
-              <span className="text-sm font-medium">Background Color:</span>
+            <TabsContent value='background' className='flex items-center gap-4'>
+              <span className='text-sm font-medium'>Background Color:</span>
               <ColorPicker
                 color={tabColors.background}
-                onChange={color => setTabColors(prev => ({ ...prev, background: color }))}
+                onChange={color =>
+                  setTabColors(prev => ({ ...prev, background: color }))
+                }
               />
             </TabsContent>
           </Tabs>
         </div>
-  
+
         {/* Undo / Redo / Download / Clear */}
-        <div className="flex justify-between mb-4">
-          <div className="flex gap-2">
-            <Button variant="outline" size="icon" onClick={undo} disabled={historyIndex <= 0}>
-              <Undo className="h-4 w-4" />
+        <div className='flex md:justify-between mb-4 gap-2'>
+          <div className='flex gap-2'>
+            <Button
+              variant='outline'
+              size='icon'
+              onClick={undo}
+              disabled={historyIndex <= 0}
+            >
+              <Undo className='h-4 w-4' />
             </Button>
-            <Button variant="outline" size="icon" onClick={redo} disabled={historyIndex >= canvasHistory.length - 1}>
-              <Redo className="h-4 w-4" />
+            <Button
+              variant='outline'
+              size='icon'
+              onClick={redo}
+              disabled={historyIndex >= canvasHistory.length - 1}
+            >
+              <Redo className='h-4 w-4' />
             </Button>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => console.log('Download functionality not implemented')}>
-              <Download className="h-4 w-4 mr-2" />
-              Download
+          <div className='flex gap-2'>
+            <Button
+              variant='outline'
+              onClick={() =>
+                console.log('Download functionality not implemented')
+              }
+            >
+              <Download className='h-4 w-4 md:mr-2' />
+              <span className='hidden md:block'>Download</span>
             </Button>
-            <Button variant="destructive" onClick={clearCanvas}>
-              <Trash2 className="h-4 w-4 mr-2" />
-              Clear
+            <Button variant='destructive' onClick={clearCanvas}>
+              <Trash2 className='h-4 w-4 md:mr-2' />
+              <span className='hidden md:block'>Clear</span>
             </Button>
           </div>
         </div>
-  
+
         {/* Zoom Slider */}
-        <div className="flex items-center gap-4 mb-4">
-          <span className="text-sm font-medium">Zoom:</span>
+        <div className='flex items-center gap-4 mb-4'>
+          <span className='text-sm font-medium'>Zoom:</span>
           <Slider
             value={[zoomLevel * 100]}
             min={10}
             max={200}
             step={10}
-            className="w-40"
+            className='w-40'
             onValueChange={([value]) => handleZoom(value)}
           />
-          <span className="text-sm">{zoomLevel * 100}%</span>
+          <span className='text-sm'>{zoomLevel * 100}%</span>
         </div>
-  
         {/* Canvas */}
-        <div className="border rounded-md overflow-hidden">
+        <div className='border rounded-md overflow-hidden'>
           <canvas ref={canvasRef} />
         </div>
       </Card>
     </div>
-  );  
+  )
 }

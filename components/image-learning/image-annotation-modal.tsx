@@ -89,7 +89,7 @@ export default function ImageAnnotationModal({ image, isOpen, onClose, isEditMod
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-4xl overflow-auto">
         <DialogHeader>
           <DialogTitle>{image.title}</DialogTitle>
           <DialogDescription>
@@ -104,11 +104,11 @@ export default function ImageAnnotationModal({ image, isOpen, onClose, isEditMod
           </TabsList>
 
           <TabsContent value="view" className="space-y-4">
-            <div className="relative border rounded-md overflow-hidden">
+            <div className="relative border rounded-md overflow-scroll">
               <img
                 src={image.imageUrl || "/placeholder.svg"}
                 alt={image.title}
-                className="w-full object-contain max-h-[500px]"
+                className="w-full object-contain max-h-[400px]"
               />
 
               {annotations.map((annotation) => (
@@ -128,21 +128,24 @@ export default function ImageAnnotationModal({ image, isOpen, onClose, isEditMod
             </div>
 
             {annotations.length > 0 ? (
-              <div className="space-y-2">
-                <h3 className="font-medium">Annotations</h3>
-                <div className="space-y-2">
-                  {annotations.map((annotation, index) => (
-                    <div key={annotation.id} className="flex items-start gap-2">
-                      <div
-                        className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
-                        style={{ backgroundColor: annotation.color }}
-                      >
-                        {index + 1}
-                      </div>
-                      <p className="text-sm">{annotation.text}</p>
-                    </div>
-                  ))}
+              <div className="space-y-4">
+              <h3 className="font-medium text-lg">Annotations</h3>
+              <div className="space-y-2 md:space-y-0 max-h-[200px] flex flex-col md:flex-row overflow-y-auto">
+                {annotations.map((annotation, index) => (
+                <div
+                  key={annotation.id}
+                  className="flex items-center gap-3 p-2 h-10 border rounded-lg md:mr-2 md:mb-2 groups"
+                >
+                  <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
+                  style={{ backgroundColor: annotation.color }}
+                  >
+                  {index + 1}
+                  </div>
+                  <p className="text-sm flex-1">{annotation.text}</p>
                 </div>
+                ))}
+              </div>
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">No annotations have been added to this image yet.</p>
