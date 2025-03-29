@@ -55,6 +55,7 @@
     "mongoose": "latest",
     "next": "15.1.0",
     "next-themes": "latest",
+    "nodemailer": "^6.10.0",
     "react": "^19",
     "react-day-picker": "8.10.1",
     "react-dom": "^19",
