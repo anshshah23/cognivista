@@ -1,13 +1,14 @@
-import connect from "@/dbConfig/dbConfig"
-import { authenticateUser } from "@/middleware/authMiddleware"
-import Profile from "@/models/profileModel"
-import { NextResponse } from "next/server"
+import connect from '@/dbConfig/dbConfig'
+import { authenticateUser } from '@/middleware/authMiddleware'
+import Profile from '@/models/profileModel'
+import User from '@/models/userModel'
+import { NextResponse } from 'next/server'
 
 // Connect to the database
 connect()
 
 // Get user profile
-export async function GET(request) {
+export async function GET (request) {
   try {
     const auth = await authenticateUser(request)
     if (auth.error) {
@@ -29,16 +30,22 @@ export async function GET(request) {
         ...profile.toObject(),
         username: user.username,
         email: user.email,
-      },
+        bio: profile.bio || '',
+        avatar: profile.avatar || '',
+        theme: profile.theme || 'system'
+      }
     })
   } catch (error) {
-    console.error("Profile Error:", error)
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 })
+    console.error('Profile Error:', error)
+    return NextResponse.json(
+      { error: error.message || 'Internal Server Error' },
+      { status: 500 }
+    )
   }
 }
 
 // Update user profile
-export async function PUT(request) {
+export async function PUT (request) {
   try {
     const auth = await authenticateUser(request)
     if (auth.error) {
@@ -73,16 +80,53 @@ export async function PUT(request) {
     await profile.save()
 
     return NextResponse.json({
-      message: "Profile updated successfully",
+      message: 'Profile updated successfully',
       profile: {
         ...profile.toObject(),
         username: user.username,
-        email: user.email,
-      },
+        email: user.email
+      }
     })
   } catch (error) {
-    console.error("Profile Update Error:", error)
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 })
+    console.error('Profile Update Error:', error)
+    return NextResponse.json(
+      { error: error.message || 'Internal Server Error' },
+      { status: 500 }
+    )
   }
 }
 
+export async function DELETE(request) {
+  try {
+    await connect();
+
+    const auth = await authenticateUser(request);
+    if (auth.error) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
+    const user = auth.user;
+
+    // Clear the auth cookie
+    const response = NextResponse.json({
+      message: "Account deleted successfully",
+      success: true,
+    });
+
+    response.cookies.set("token", "", {
+      httpOnly: true,
+      expires: new Date(0),
+      path: "/",
+    });
+
+    const userDeleted = await User.findByIdAndDelete(user._id);
+    if (!userDeleted) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    return response;
+  } catch (error) {
+    console.error("Account Deletion Error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}

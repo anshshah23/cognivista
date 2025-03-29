@@ -49,7 +49,7 @@ export default function Sidebar() {
   return (
     <div className={cn(
       "flex flex-col h-screen w-64 border-r bg-background transition-all duration-300",
-      isCollapsed ? "w-12 sm:w-16" : "w-screen sm:w-64"
+      isCollapsed ? "w-12 sm:w-16" : "w-screen sm:w-56"
     )}>
       {/* Header Section */}
       <div className="flex h-14 items-center border-b px-3 shrink-0">
