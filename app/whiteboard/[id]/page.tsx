@@ -23,17 +23,24 @@ async function getWhiteboard(id: string): Promise<WhiteboardData | null> {
 }
 
 export default async function WhiteboardPage({ params }: { params: { id: string } }) {
-  const { id } = params
-  const data = await getWhiteboard(id)
+  console.log("Received params:", params); // Debugging
+
+  if (!params || !params.id) {
+    console.error("Whiteboard ID is missing from params.");
+    notFound();
+  }
+
+  const { id } = params;
+  const data = await getWhiteboard(id);
 
   if (!data || !data.whiteboard) {
-    notFound()
+    console.error("Whiteboard not found for ID:", id);
+    notFound();
   }
 
   return (
     <div className="container py-6">
       <WhiteboardComponent id={id} initialData={data.whiteboard} />
     </div>
-  )
+  );
 }
-

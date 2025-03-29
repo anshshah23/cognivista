@@ -53,7 +53,7 @@ export default function Sidebar() {
     )}>
       {/* Header Section */}
       <div className="flex h-14 items-center border-b px-3 shrink-0">
-        {!isCollapsed && <h1 className="text-lg font-semibold">EduPlatform</h1>}
+      <Link href="/">{!isCollapsed && <h1 className="text-lg font-semibold">EduPlatform</h1>}</Link>
         <Button
           variant="ghost"
           size="icon"

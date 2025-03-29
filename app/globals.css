@@ -58,3 +58,141 @@
   }
 }
 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.feature-card {
+  @apply relative overflow-hidden rounded-xl border bg-card p-6 transition-all duration-300 hover:shadow-lg;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.feature-card::before {
+  content: "";
+  @apply absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent opacity-0 transition-opacity duration-700;
+  background-size: 200% 100%;
+  animation: gradient-x 3s linear infinite;
+}
+
+.feature-card:hover::before {
+  @apply opacity-100;
+}
+
+.glass-effect {
+  @apply bg-white/10 backdrop-blur-md dark:bg-black/10;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dark .glass-effect {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.gradient-text {
+  @apply bg-clip-text text-transparent;
+  background-image: linear-gradient(90deg, #7c3aed, #14b8a6);
+}
+
+.dark .gradient-text {
+  background-image: linear-gradient(90deg, #8b5cf6, #2dd4bf);
+}
+
+.gradient-bg {
+  background: linear-gradient(135deg, #7c3aed 0%, #14b8a6 100%);
+}
+
+.dark .gradient-bg {
+  background: linear-gradient(135deg, #6d28d9 0%, #0d9488 100%);
+}
+
+.noise-bg {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.05;
+}
+
+.shimmer {
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.2) 20%,
+    rgba(255, 255, 255, 0.5) 60%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 80rem 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+.dark .shimmer {
+  background: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(255, 255, 255, 0.1) 20%,
+    rgba(255, 255, 255, 0.2) 60%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  background-size: 80rem 100%;
+}
+
+.gradient-border {
+  position: relative;
+  border-radius: var(--radius);
+  background-clip: padding-box;
+  padding: 1px;
+}
+
+.gradient-border::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: -1;
+  margin: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, #7c3aed, #14b8a6);
+}
+
+.dark .gradient-border::before {
+  background: linear-gradient(135deg, #8b5cf6, #2dd4bf);
+}
+
+.gradient-border-content {
+  background-color: hsl(var(--background));
+  border-radius: calc(var(--radius) - 1px);
+  height: 100%;
+  width: 100%;
+}
+
+.hero-pattern {
+  background-color: #ffffff;
+  background-image: radial-gradient(rgba(124, 58, 237, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.dark .hero-pattern {
+  background-color: #0f172a;
+  background-image: radial-gradient(rgba(139, 92, 246, 0.15) 1px, transparent 1px);
+}
+
+.grid-dots {
+  background-size: 20px 20px;
+  background-image: radial-gradient(circle, rgba(124, 58, 237, 0.2) 1px, transparent 1px);
+}
+
+.dark .grid-dots {
+  background-image: radial-gradient(circle, rgba(139, 92, 246, 0.2) 1px, transparent 1px);
+}
+
+
