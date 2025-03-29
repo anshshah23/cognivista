@@ -21,7 +21,7 @@ const navItems = [
   { name: "Dashboard", href: "/", icon: Home },
   { name: "Whiteboard", href: "/whiteboard", icon: PenTool },
   { name: "Image Learning", href: "/image-learning", icon: Image },
-  { name: "Paint", href: "/paint", icon: PenTool },
+  { name: "Usage", href: "/analytics", icon: PenTool },
   { name: "Video Player", href: "/video", icon: Video },
   { name: "Quizzes", href: "/quizzes", icon: BookOpen },
   { name: "Collaboration", href: "/collaboration", icon: MessageSquare },
