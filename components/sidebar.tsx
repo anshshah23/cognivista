@@ -21,7 +21,7 @@ const navItems = [
   { name: "Dashboard", href: "/", icon: Home },
   { name: "Whiteboard", href: "/whiteboard", icon: PenTool },
   { name: "Image Learning", href: "/image-learning", icon: Image },
-  { name: "Paint", href: "/paint", icon: PenTool },
+  { name: "Usage", href: "/analytics", icon: PenTool },
   { name: "Video Player", href: "/video", icon: Video },
   { name: "Quizzes", href: "/quizzes", icon: BookOpen },
   { name: "Collaboration", href: "/collaboration", icon: MessageSquare },
@@ -49,11 +49,11 @@ export default function Sidebar() {
   return (
     <div className={cn(
       "flex flex-col h-screen w-64 border-r bg-background transition-all duration-300",
-      isCollapsed ? "w-12 sm:w-16" : "w-screen sm:w-64"
+      isCollapsed ? "w-12 sm:w-16" : "w-screen sm:w-56"
     )}>
       {/* Header Section */}
       <div className="flex h-14 items-center border-b px-3 shrink-0">
-        {!isCollapsed && <h1 className="text-lg font-semibold">EduPlatform</h1>}
+      <Link href="/">{!isCollapsed && <h1 className="text-lg font-semibold">EduPlatform</h1>}</Link>
         <Button
           variant="ghost"
           size="icon"

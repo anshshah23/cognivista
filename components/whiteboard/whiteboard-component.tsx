@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { use, useEffect, useRef, useState } from 'react'
 import * as fabric from 'fabric'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -18,10 +18,33 @@ import {
   Undo,
   Redo,
   Hand,
-  PaintBucket
+  PaintBucket,
+  Save,
+  Share,
+  List
 } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
+} from '@/components/ui/dialog'
+import { useToast } from '@/hooks/use-toast'
+import analyticsTracker from '@/lib/analytics'
+import { useRouter } from 'next/navigation'
 
-export default function WhiteboardComponent () {
+interface WhiteboardComponentProps {
+  id?: string
+  initialData?: any
+}
+
+export default function WhiteboardComponent ({
+  id,
+  initialData
+}: WhiteboardComponentProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fabricCanvasRef = useRef<fabric.Canvas | null>(null)
   const [activeTab, setActiveTab] = useState('draw')
@@ -33,6 +56,75 @@ export default function WhiteboardComponent () {
   const [textColor, setTextColor] = useState('#000000')
   const [canvasHistory, setCanvasHistory] = useState<string[]>([])
   const [historyIndex, setHistoryIndex] = useState(-1)
+  const [title, setTitle] = useState(
+    initialData?.title || 'Untitled Whiteboard'
+  )
+  const [isPublic, setIsPublic] = useState(initialData?.isPublic || false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [whiteboardsList, setWhiteboardsList] = useState([])
+  const [showWhiteboardsDialog, setShowWhiteboardsDialog] = useState(false)
+  const { toast } = useToast()
+  const router = useRouter()
+
+  // Start analytics tracking
+  useEffect(() => {
+    analyticsTracker.startSession('whiteboard')
+
+    return () => {
+      analyticsTracker.endSession()
+    }
+  }, [])
+
+  useEffect(() => {
+    if( KeyboardEvent ) {
+      const handleKeyDown = (event: KeyboardEvent) => {
+        if (event.ctrlKey && event.key === 'z') {
+          undo()
+        } else if (event.ctrlKey && event.key === 'y') {
+          redo()
+        }
+      }
+      window.addEventListener('keydown', handleKeyDown)
+      return () => {
+        window.removeEventListener('keydown', handleKeyDown)
+      }
+    }
+  }, [historyIndex, canvasHistory])
+
+  useEffect(() => {
+    if( KeyboardEvent ) {
+      const handleKey = (event: KeyboardEvent) => {
+        if (event.key === 'Delete') {
+          const canvas = fabricCanvasRef.current
+          if (canvas) {
+            const activeObject = canvas.getActiveObject()
+            if (activeObject) {
+              canvas.remove(activeObject)
+              saveCanvasState()
+              analyticsTracker.recordAction()
+            }
+          }
+        }
+      }
+      window.addEventListener('keydown', handleKey)
+      return () => {
+        window.removeEventListener('keydown', handleKey)
+      }
+    }
+  }, [])
+  // Load whiteboards list
+  const loadWhiteboards = async () => {
+    try {
+      const response = await fetch('/api/whiteboards')
+      if (response.ok) {
+        const data = await response.json()
+        setWhiteboardsList(data.whiteboards)
+      }
+    } catch (error) {
+      console.error('Error loading whiteboards:', error)
+    }
+  }
 
   // Initialize canvas
   useEffect(() => {
@@ -63,25 +155,37 @@ export default function WhiteboardComponent () {
 
     // Set initial brush settings
     canvas.freeDrawingBrush = new fabric.PencilBrush(canvas)
-
     if (canvas.freeDrawingBrush) {
       canvas.freeDrawingBrush.width = brushSize
     }
-
-    canvas.freeDrawingBrush.color = brushColor
-
-    // Save initial state
-    const initialState = JSON.stringify(canvas.toJSON())
-    setCanvasHistory([initialState])
-    setHistoryIndex(0)
+    if (canvas.freeDrawingBrush) {
+      canvas.freeDrawingBrush.color = brushColor
+    }
+    // Load initial data if provided
+    if (initialData && initialData.content) {
+      canvas.loadFromJSON(initialData.content, () => {
+        canvas.renderAll()
+        // Save initial state
+        const initialState = JSON.stringify(canvas.toJSON())
+        setCanvasHistory([initialState])
+        setHistoryIndex(0)
+      })
+    } else {
+      // Save initial state
+      const initialState = JSON.stringify(canvas.toJSON())
+      setCanvasHistory([initialState])
+      setHistoryIndex(0)
+    }
 
     // Add event listeners for object modifications
     canvas.on('object:added', () => {
       saveCanvasState()
+      analyticsTracker.recordAction()
     })
 
     canvas.on('object:modified', () => {
       saveCanvasState()
+      analyticsTracker.recordAction()
     })
 
     // Handle window resize
@@ -108,7 +212,7 @@ export default function WhiteboardComponent () {
         fabricCanvasRef.current = null
       }
     }
-  }, [])
+  }, [initialData])
 
   // Save canvas state for undo/redo
   const saveCanvasState = () => {
@@ -133,16 +237,22 @@ export default function WhiteboardComponent () {
 
     if (activeTab === 'draw') {
       canvas.isDrawingMode = true
+
       if (canvas.freeDrawingBrush) {
-      canvas.freeDrawingBrush.width = brushSize
+        canvas.freeDrawingBrush.width = brushSize
       }
+
       if (canvas.freeDrawingBrush) {
         canvas.freeDrawingBrush.color = brushColor
       }
     } else if (activeTab === 'erase') {
       canvas.isDrawingMode = true
+
       if (canvas.freeDrawingBrush) {
         canvas.freeDrawingBrush.width = eraserSize
+      }
+
+      if (canvas.freeDrawingBrush) {
         canvas.freeDrawingBrush.color = backgroundColor
       }
     }
@@ -166,18 +276,25 @@ export default function WhiteboardComponent () {
       case 'draw':
         canvas.isDrawingMode = true
         canvas.selection = false
+
         if (canvas.freeDrawingBrush) {
-        canvas.freeDrawingBrush.color = brushColor
-        canvas.freeDrawingBrush.width = brushSize
+          canvas.freeDrawingBrush.color = brushColor
+        }
+
+        if (canvas.freeDrawingBrush) {
+          canvas.freeDrawingBrush.width = brushSize
         }
         break
       case 'erase':
         canvas.isDrawingMode = true
         canvas.selection = false
+
         if (canvas.freeDrawingBrush) {
           canvas.freeDrawingBrush.color = backgroundColor
-        canvas.freeDrawingBrush.width = eraserSize
+        }
 
+        if (canvas.freeDrawingBrush) {
+          canvas.freeDrawingBrush.width = eraserSize
         }
         break
       case 'select':
@@ -223,6 +340,7 @@ export default function WhiteboardComponent () {
       canvas.add(object)
       canvas.setActiveObject(object)
       saveCanvasState()
+      analyticsTracker.recordAction()
     }
   }
 
@@ -242,6 +360,7 @@ export default function WhiteboardComponent () {
     canvas.add(text)
     canvas.setActiveObject(text)
     saveCanvasState()
+    analyticsTracker.recordAction()
   }
 
   // Undo action
@@ -255,6 +374,8 @@ export default function WhiteboardComponent () {
     canvas.loadFromJSON(JSON.parse(canvasHistory[newIndex]), () => {
       canvas.renderAll()
     })
+
+    analyticsTracker.recordAction()
   }
 
   // Redo action
@@ -269,6 +390,8 @@ export default function WhiteboardComponent () {
     canvas.loadFromJSON(JSON.parse(canvasHistory[newIndex]), () => {
       canvas.renderAll()
     })
+
+    analyticsTracker.recordAction()
   }
 
   // Clear canvas
@@ -280,6 +403,7 @@ export default function WhiteboardComponent () {
     canvas.backgroundColor = backgroundColor
     canvas.renderAll()
     saveCanvasState()
+    analyticsTracker.recordAction()
   }
 
   // Download canvas as image
@@ -293,16 +417,223 @@ export default function WhiteboardComponent () {
     })
 
     const link = document.createElement('a')
-    link.download = 'whiteboard.png'
+    link.download = `${title}.png`
     link.href = dataURL
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+
+    analyticsTracker.recordAction()
+  }
+
+  // Save whiteboard to server
+  const saveWhiteboard = async () => {
+    if (!fabricCanvasRef.current) return
+
+    setIsSaving(true)
+
+    try {
+      const canvas = fabricCanvasRef.current
+      const content = JSON.stringify(canvas.toJSON())
+
+      // Generate thumbnail
+      const thumbnail = canvas.toDataURL({
+        format: 'png',
+        quality: 0.5,
+        multiplier: 0.5
+      })
+
+      const whiteboardData = {
+        title,
+        content,
+        thumbnail,
+        isPublic
+      }
+
+      let url = '/api/whiteboards'
+      let method = 'POST'
+
+      if (id) {
+        url = `/api/whiteboards/${id}`
+        method = 'PUT'
+      }
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(whiteboardData)
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+
+        toast({
+          title: 'Success',
+          description: id
+            ? 'Whiteboard updated successfully'
+            : 'Whiteboard saved successfully'
+        })
+
+        if (!id) {
+          // Redirect to the new whiteboard page
+          router.push(`/whiteboard/${data.whiteboard._id}`)
+        }
+      } else {
+        throw new Error('Failed to save whiteboard')
+      }
+    } catch (error) {
+      console.error('Error saving whiteboard:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to save whiteboard. Please try again.',
+        variant: 'destructive'
+      })
+    } finally {
+      setIsSaving(false)
+      setShowSaveDialog(false)
+    }
+  }
+
+  // Open a whiteboard
+  const openWhiteboard = (whiteboardId: string) => {
+    router.push(`/whiteboard/${whiteboardId}`)
   }
 
   return (
     <div className='flex flex-col gap-4'>
       <Card className='p-4'>
+        <div className='flex justify-between items-center mb-4'>
+          <div className='flex items-center gap-2'>
+            <Input
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              className='max-w-xs font-medium text-lg'
+              placeholder='Untitled Whiteboard'
+            />
+          </div>
+          <div className='flex gap-2'>
+            <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+              <DialogTrigger asChild>
+                <Button variant='outline'>
+                  <Save className='h-4 w-4 mr-2' />
+                  Save
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Save Whiteboard</DialogTitle>
+                </DialogHeader>
+                <div className='space-y-4 py-4'>
+                  <div className='space-y-2'>
+                    <Label htmlFor='title'>Title</Label>
+                    <Input
+                      id='title'
+                      value={title}
+                      onChange={e => setTitle(e.target.value)}
+                      placeholder='Enter whiteboard title'
+                    />
+                  </div>
+                  <div className='flex items-center space-x-2'>
+                    <input
+                      type='checkbox'
+                      id='isPublic'
+                      checked={isPublic}
+                      onChange={e => setIsPublic(e.target.checked)}
+                      className='rounded border-gray-300'
+                      title='Make this whiteboard public'
+                    />
+                    <Label htmlFor='isPublic'>
+                      Make this whiteboard public
+                    </Label>
+                  </div>
+                </div>
+                <div className='flex justify-end gap-2'>
+                  <Button
+                    variant='outline'
+                    onClick={() => setShowSaveDialog(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={saveWhiteboard} disabled={isSaving}>
+                    {isSaving ? 'Saving...' : 'Save Whiteboard'}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog
+              open={showWhiteboardsDialog}
+              onOpenChange={open => {
+                setShowWhiteboardsDialog(open)
+                if (open) loadWhiteboards()
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button variant='outline'>
+                  <List className='h-4 w-4 mr-2' />
+                  My Whiteboards
+                </Button>
+              </DialogTrigger>
+              <DialogContent className='max-w-2xl'>
+                <DialogHeader>
+                  <DialogTitle>My Whiteboards</DialogTitle>
+                </DialogHeader>
+                <div className='max-h-96 overflow-y-auto'>
+                  {whiteboardsList.length === 0 ? (
+                    <p className='text-center text-muted-foreground py-4'>
+                      No whiteboards found
+                    </p>
+                  ) : (
+                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4 py-4'>
+                      {whiteboardsList.map((whiteboard: any) => (
+                        <div
+                          key={whiteboard._id}
+                          className='border rounded-md p-2 cursor-pointer hover:bg-accent'
+                          onClick={() => openWhiteboard(whiteboard._id)}
+                        >
+                          <div className='aspect-video bg-muted rounded-md mb-2 overflow-hidden'>
+                            {whiteboard.thumbnail ? (
+                              <img
+                                src={whiteboard.thumbnail || '/placeholder.svg'}
+                                alt={whiteboard.title}
+                                className='w-full h-full object-cover'
+                              />
+                            ) : (
+                              <div className='w-full h-full flex items-center justify-center text-muted-foreground'>
+                                No Preview
+                              </div>
+                            )}
+                          </div>
+                          <h3 className='font-medium truncate'>
+                            {whiteboard.title}
+                          </h3>
+                          <p className='text-xs text-muted-foreground'>
+                            {new Date(
+                              whiteboard.updatedAt
+                            ).toLocaleDateString()}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Button variant='outline' onClick={downloadCanvas}>
+              <Download className='h-4 w-4 mr-2' />
+              Download
+            </Button>
+
+            <Button variant='outline'>
+              <Share className='h-4 w-4 mr-2' />
+              Share
+            </Button>
+          </div>
+        </div>
+
         <div className='flex flex-wrap gap-2 mb-4'>
           <Tabs
             value={activeTab}
@@ -425,10 +756,6 @@ export default function WhiteboardComponent () {
             </Button>
           </div>
           <div className='flex gap-2'>
-            <Button variant='outline' onClick={downloadCanvas}>
-              <Download className='h-4 w-4 mr-2' />
-              Download
-            </Button>
             <Button variant='destructive' onClick={clearCanvas}>
               <Trash2 className='h-4 w-4 mr-2' />
               Clear
