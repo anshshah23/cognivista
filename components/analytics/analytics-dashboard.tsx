@@ -19,6 +19,7 @@ import {
 import { Calendar, Clock, Video, Image, BookOpen, MessageSquare, PenTool, TrendingUp, Activity } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { motion } from "framer-motion"
 
 export default function AnalyticsDashboard() {
   const [period, setPeriod] = useState("week")
@@ -86,21 +87,33 @@ export default function AnalyticsDashboard() {
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
   }
 
-  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"]
+  const COLORS = ["#4F46E5", "#8B5CF6", "#EC4899", "#F59E0B", "#10B981", "#3B82F6"]
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="services">Services</TabsTrigger>
-            <TabsTrigger value="time">Time Analysis</TabsTrigger>
+          <TabsList className="bg-background/80 backdrop-blur-sm border">
+            <TabsTrigger
+              value="overview"
+              className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+            >
+              Overview
+            </TabsTrigger>
+            <TabsTrigger
+              value="services"
+              className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+            >
+              Services
+            </TabsTrigger>
+            <TabsTrigger value="time" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
+              Time Analysis
+            </TabsTrigger>
           </TabsList>
 
           <div className="flex justify-end my-4">
             <Select value={period} onValueChange={setPeriod}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[180px] bg-background/80 backdrop-blur-sm border">
                 <SelectValue placeholder="Select period" />
               </SelectTrigger>
               <SelectContent>
@@ -114,116 +127,148 @@ export default function AnalyticsDashboard() {
 
           <TabsContent value="overview" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Time</CardTitle>
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {isLoading ? "Loading..." : `${summary?.totalDurationHours || 0} hours`}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Total time spent on the platform</p>
-                </CardContent>
-              </Card>
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                <Card className="card-hover bg-background/80 backdrop-blur-sm border">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Time</CardTitle>
+                    <Clock className="h-4 w-4 text-primary" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {isLoading ? "Loading..." : `${summary?.totalDurationHours || 0} hours`}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Total time spent on the platform</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Daily Average</CardTitle>
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {isLoading ? "Loading..." : `${summary?.averageDailyUsageHours || 0} hours`}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Average daily usage</p>
-                </CardContent>
-              </Card>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
+              >
+                <Card className="card-hover bg-background/80 backdrop-blur-sm border">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Daily Average</CardTitle>
+                    <Calendar className="h-4 w-4 text-primary" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {isLoading ? "Loading..." : `${summary?.averageDailyUsageHours || 0} hours`}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Average daily usage</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Most Used</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {isLoading ? "Loading..." : formatServiceName(summary?.mostUsedService || "")}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Your most used service</p>
-                </CardContent>
-              </Card>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.2 }}
+              >
+                <Card className="card-hover bg-background/80 backdrop-blur-sm border">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Most Used</CardTitle>
+                    <TrendingUp className="h-4 w-4 text-primary" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {isLoading ? "Loading..." : formatServiceName(summary?.mostUsedService || "")}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Your most used service</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Sessions</CardTitle>
-                  <Activity className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{isLoading ? "Loading..." : summary?.totalSessions || 0}</div>
-                  <p className="text-xs text-muted-foreground">Total number of sessions</p>
-                </CardContent>
-              </Card>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.3 }}
+              >
+                <Card className="card-hover bg-background/80 backdrop-blur-sm border">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Sessions</CardTitle>
+                    <Activity className="h-4 w-4 text-primary" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{isLoading ? "Loading..." : summary?.totalSessions || 0}</div>
+                    <p className="text-xs text-muted-foreground">Total number of sessions</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card className="col-span-1">
-                <CardHeader>
-                  <CardTitle>Service Usage</CardTitle>
-                  <CardDescription>Time spent on each service</CardDescription>
-                </CardHeader>
-                <CardContent className="h-80">
-                  {isLoading ? (
-                    <div className="h-full flex items-center justify-center">
-                      <p>Loading chart data...</p>
-                    </div>
-                  ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={getServiceData()}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                          label={({ name, value }) => `${name}: ${value}h`}
-                        >
-                          {getServiceData().map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={(value) => [`${value} hours`, "Time Spent"]} />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  )}
-                </CardContent>
-              </Card>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.4 }}
+              >
+                <Card className="col-span-1 card-hover bg-background/80 backdrop-blur-sm border">
+                  <CardHeader>
+                    <CardTitle>Service Usage</CardTitle>
+                    <CardDescription>Time spent on each service</CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-80">
+                    {isLoading ? (
+                      <div className="h-full flex items-center justify-center">
+                        <p>Loading chart data...</p>
+                      </div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={getServiceData()}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="value"
+                            label={({ name, value }) => `${name}: ${value}h`}
+                          >
+                            {getServiceData().map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(value) => [`${value} hours`, "Time Spent"]} />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
 
-              <Card className="col-span-1">
-                <CardHeader>
-                  <CardTitle>Daily Usage</CardTitle>
-                  <CardDescription>Hours spent per day</CardDescription>
-                </CardHeader>
-                <CardContent className="h-80">
-                  {isLoading ? (
-                    <div className="h-full flex items-center justify-center">
-                      <p>Loading chart data...</p>
-                    </div>
-                  ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={getDailyData()}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="date" />
-                        <YAxis label={{ value: "Hours", angle: -90, position: "insideLeft" }} />
-                        <Tooltip formatter={(value) => [`${value} hours`, "Time Spent"]} />
-                        <Bar dataKey="hours" fill="#8884d8" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  )}
-                </CardContent>
-              </Card>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.5 }}
+              >
+                <Card className="col-span-1 card-hover bg-background/80 backdrop-blur-sm border">
+                  <CardHeader>
+                    <CardTitle>Daily Usage</CardTitle>
+                    <CardDescription>Hours spent per day</CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-80">
+                    {isLoading ? (
+                      <div className="h-full flex items-center justify-center">
+                        <p>Loading chart data...</p>
+                      </div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={getDailyData()}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                          <XAxis dataKey="date" />
+                          <YAxis label={{ value: "Hours", angle: -90, position: "insideLeft" }} />
+                          <Tooltip formatter={(value) => [`${value} hours`, "Time Spent"]} />
+                          <Bar dataKey="hours" fill="hsl(var(--primary))" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
             </div>
           </TabsContent>
 
@@ -393,7 +438,7 @@ export default function AnalyticsDashboard() {
                           <p className="text-sm text-muted-foreground">You could benefit from spending more time on:</p>
                           <p className="font-medium mt-1">
                             {Object.entries(summary?.serviceBreakdown || {})
-                              .sort((a, b) => ((a[1] as { seconds: number }).seconds) - ((b[1] as { seconds: number }).seconds))
+                              .sort((a, b) => (a[1].seconds as number) - (b[1].seconds as number))
                               .map(([service]) => formatServiceName(service))[0] || "N/A"}
                           </p>
                         </div>
