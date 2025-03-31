@@ -125,7 +125,7 @@ export default function Home () {
                   <span className='animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75'></span>
                   <span className='relative inline-flex rounded-full h-2 w-2 bg-primary'></span>
                 </span>
-                <span>Smart Education Platform</span>
+                <span>CogniVista</span>
               </div>
               <h1 className='text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl'>
                 Learn <span className='gradient-text mr-2'>Smarter</span>, Not
@@ -250,7 +250,7 @@ export default function Home () {
           >
             <div className='space-y-2'>
               <h2 className='text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl'>
-                Why Choose <span className='gradient-text'>SmartEdu</span>
+                Why Choose <span className='gradient-text'>CogniVista</span>
               </h2>
               <p className='max-w-[700px] text-muted-foreground md:text-xl/relaxed'>
                 Discover the benefits of our integrated educational ecosystem.
@@ -331,10 +331,10 @@ export default function Home () {
             <div className='flex items-center space-x-2'>
               <div className='relative h-8 w-8 overflow-hidden rounded-full bg-primary'>
                 <div className='absolute inset-0 flex items-center justify-center text-white font-bold'>
-                  SE
+                  CV
                 </div>
               </div>
-              <span className='font-bold text-xl gradient-text'>SmartEdu</span>
+              <span className='font-bold text-xl gradient-text'>CogniVista</span>
             </div>
             <div className='flex items-center gap-6 text-sm text-muted-foreground'>
               <Link href='/privacy' className='hover:text-foreground'>
@@ -346,7 +346,7 @@ export default function Home () {
               <Link href='/contact' className='hover:text-foreground'>
                 Contact
               </Link>
-              <span>© 2025 SmartEdu</span>
+              <span>© 2025 CogniVista</span>
             </div>
           </div>
         </div>

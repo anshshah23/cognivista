@@ -90,7 +90,7 @@ export default function Sidebar() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
             >
-              SmartEdu
+              CogniVista
             </motion.span>
           )}
         </Link>

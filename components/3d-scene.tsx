@@ -44,7 +44,7 @@ function Scene() {
       {/* 3D Text */}
       <Float speed={1.5} rotationIntensity={0.2} floatIntensity={0.5}>
         <Text3D font="/fonts/Inter_Bold.json" position={[0, -1.5, 0]} scale={0.5} letterSpacing={0.05} height={0.2}>
-          SmartEdu
+          CogniVista
           <meshStandardMaterial color="#DB2777" roughness={0.3} metalness={0.7} />
         </Text3D>
       </Float>

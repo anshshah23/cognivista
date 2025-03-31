@@ -15,7 +15,7 @@ export async function sendEmail(email, otpCode) {
     const mailOptions = {
         from: process.env.EMAIL_USER,
         to: email,
-        subject: "Your SmartEdu OTP Code",
+        subject: "Your CogniVista OTP Code",
         text: `Your OTP code is ${otpCode}. It is valid for 5 minutes.`,
     };
 

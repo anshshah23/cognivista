@@ -9,9 +9,12 @@ import { AuthProvider } from "@/lib/authContext"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Educational Platform",
-  description: "Interactive learning platform with collaborative features",
-  generator: "v0.dev",
+  title: "CogniVista",
+  authors: [{ name: "Ansh Shah", url: "https://cognivista.vercel.app/" }],
+  description: "A platform for Smart, Interactive Learning",
+  keywords: ["CogniVista", "AI", "Learning", "Education"],
+  creator: "Ansh Shah",
+  publisher: "Ansh Shah",
 }
 
 export default function RootLayout({
