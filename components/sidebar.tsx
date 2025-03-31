@@ -76,9 +76,9 @@ export default function Sidebar() {
       <div className="flex h-16 items-center border-b px-3 shrink-0">
         <Link href="/" className="flex items-center" onClick={handleNavClick}>
           {!isCollapsed && (
-            <div className="relative h-8 w-8 overflow-hidden rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500">
+            <div className="relative h-8 w-8 overflow-hidden rounded-full bg-primary">
               <div className="absolute inset-0 flex items-center justify-center text-white font-bold">
-                SE
+                CV
               </div>
             </div>
           )}

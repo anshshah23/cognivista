@@ -77,7 +77,7 @@ export default function WhiteboardComponent ({
   }, [])
 
   useEffect(() => {
-    if( KeyboardEvent ) {
+    if (KeyboardEvent) {
       const handleKeyDown = (event: KeyboardEvent) => {
         if (event.ctrlKey && event.key === 'z') {
           undo()
@@ -93,7 +93,7 @@ export default function WhiteboardComponent ({
   }, [historyIndex, canvasHistory])
 
   useEffect(() => {
-    if( KeyboardEvent ) {
+    if (KeyboardEvent) {
       const handleKey = (event: KeyboardEvent) => {
         if (event.key === 'Delete') {
           const canvas = fabricCanvasRef.current
@@ -503,9 +503,9 @@ export default function WhiteboardComponent ({
 
   return (
     <div className='flex flex-col gap-4'>
-      <Card className='p-4'>
-        <div className='flex justify-between items-center mb-4'>
-          <div className='flex items-center gap-2'>
+      <Card className='p-2 md:p-4'>
+        <div className='flex flex-col md:flex-row justify-between items-center mb-4'>
+          <div className='flex items-center gap-2 mb-2 md:mb-0'>
             <Input
               value={title}
               onChange={e => setTitle(e.target.value)}
@@ -516,9 +516,9 @@ export default function WhiteboardComponent ({
           <div className='flex gap-2'>
             <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
               <DialogTrigger asChild>
-                <Button variant='outline'>
-                  <Save className='h-4 w-4 mr-2' />
-                  Save
+                <Button variant='outline' className='px-3'>
+                  <Save className='h-3 md:h-4 w-3 md:w-4 md:mr-2' />
+                  <span className='hidden md:block'>Save</span>
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -571,9 +571,9 @@ export default function WhiteboardComponent ({
               }}
             >
               <DialogTrigger asChild>
-                <Button variant='outline'>
-                  <List className='h-4 w-4 mr-2' />
-                  My Whiteboards
+                <Button variant='outline' className='px-3'>
+                  <List className='h-3 md:h-4 w-3 md:w-4 md:mr-2' />
+                  <span className='hidden md:block'>My Whiteboards</span>
                 </Button>
               </DialogTrigger>
               <DialogContent className='max-w-2xl'>
@@ -622,14 +622,14 @@ export default function WhiteboardComponent ({
               </DialogContent>
             </Dialog>
 
-            <Button variant='outline' onClick={downloadCanvas}>
-              <Download className='h-4 w-4 mr-2' />
-              Download
+            <Button variant='outline' className='px-3' onClick={downloadCanvas}>
+              <Download className='h-3 md:h-4 w-3 md:w-4 md:mr-2' />
+              <span className='hidden md:block'>Downloads</span>
             </Button>
 
-            <Button variant='outline'>
-              <Share className='h-4 w-4 mr-2' />
-              Share
+            <Button variant='outline' className='px-3'>
+              <Share className='h-3 md:h-4 w-3 md:w-4 md:mr-2' />
+              <span className='hidden md:block'>Share</span>
             </Button>
           </div>
         </div>
@@ -640,36 +640,36 @@ export default function WhiteboardComponent ({
             onValueChange={handleToolSelect}
             className='w-full'
           >
-            <TabsList className='mb-4'>
+            <TabsList className='flex justify-self-center md:justify-self-start'>
               <TabsTrigger value='draw'>
-                <Pencil className='h-4 w-4 mr-2' />
-                Draw
+                <Pencil className='h-3 md:h-4 w-3 md:w-4 md:mr-2' />
+                <span className='hidden md:block'>Draw</span>
               </TabsTrigger>
               <TabsTrigger value='erase'>
-                <Eraser className='h-4 w-4 mr-2' />
-                Erase
+                <Eraser className='h-3 md:h-4 w-3 md:w-4 md:mr-2' />
+                <span className='hidden md:block'>Erase</span>
               </TabsTrigger>
               <TabsTrigger value='select'>
-                <Hand className='h-4 w-4 mr-2' />
-                Select
+                <Hand className='h-3 md:h-4 w-3 md:w-4 md:mr-2' />
+                <span className='hidden md:block'>Select</span>
               </TabsTrigger>
               <TabsTrigger value='shape'>
-                <Square className='h-4 w-4 mr-2' />
-                Shapes
+                <Square className='h-3 md:h-4 w-3 md:w-4 md:mr-2' />
+                <span className='hidden md:block'>Shapes</span>
               </TabsTrigger>
               <TabsTrigger value='text'>
-                <Type className='h-4 w-4 mr-2' />
-                Text
+                <Type className='h-3 md:h-4 w-3 md:w-4 md:mr-2' />
+                <span className='hidden md:block'>Text</span>
               </TabsTrigger>
               <TabsTrigger value='background'>
-                <PaintBucket className='h-4 w-4 mr-2' />
-                Background
+                <PaintBucket className='h-3 md:h-4 w-3 md:w-4 md:mr-2' />
+                <span className='hidden md:block'>Background</span>
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value='draw' className='flex items-center gap-4'>
+            <TabsContent value='draw' className='flex items-center gap-4 m-1'>
               <div className='flex items-center gap-2'>
-                <span className='text-sm font-medium'>Brush Size:</span>
+                <span className='text-md font-medium'>Brush Size:</span>
                 <Slider
                   value={[brushSize]}
                   min={1}
@@ -678,17 +678,17 @@ export default function WhiteboardComponent ({
                   className='w-40'
                   onValueChange={value => setBrushSize(value[0])}
                 />
-                <span className='text-sm'>{brushSize}px</span>
+                <span className='text-md'>{brushSize}px</span>
               </div>
               <div className='flex items-center gap-2'>
-                <span className='text-sm font-medium'>Color:</span>
+                <span className='text-md font-medium'>Color:</span>
                 <ColorPicker color={brushColor} onChange={setBrushColor} />
               </div>
             </TabsContent>
 
-            <TabsContent value='erase' className='flex items-center gap-4'>
+            <TabsContent value='erase' className='flex items-center gap-4 m-1'>
               <div className='flex items-center gap-2'>
-                <span className='text-sm font-medium'>Eraser Size:</span>
+                <span className='text-md font-medium'>Eraser Size:</span>
                 <Slider
                   value={[eraserSize]}
                   min={1}
@@ -697,28 +697,32 @@ export default function WhiteboardComponent ({
                   className='w-40'
                   onValueChange={value => setEraserSize(value[0])}
                 />
-                <span className='text-sm'>{eraserSize}px</span>
+                <span className='text-md'>{eraserSize}px</span>
               </div>
             </TabsContent>
 
-            <TabsContent value='shape' className='flex items-center gap-4'>
-              <Button variant='outline' onClick={() => addShape('rect')}>
-                <Square className='h-4 w-4 mr-2' />
-                Rectangle
-              </Button>
-              <Button variant='outline' onClick={() => addShape('circle')}>
-                <Circle className='h-4 w-4 mr-2' />
-                Circle
-              </Button>
+            <TabsContent value='shape' className='flex flex-col md:flex-row items-center gap-4 m-1' >
+              <div className='flex items-center gap-2'>
+                <Button variant='outline' onClick={() => addShape('rect')}>
+                  <Square className='h-3 md:h-4 w-3 md:w-4 md:mr-2' />
+                  <span className='hidden md:block'>Rectangle</span>
+                  <span className='md:hidden'>Rect</span>
+                </Button>
+                <Button variant='outline' onClick={() => addShape('circle')}>
+                  <Circle className='h-3 md:h-4 w-3 md:w-4 md:mr-2' />
+                  <span className='hidden md:block'>Circle</span>
+                  <span className='md:hidden'>Circ</span>
+                </Button>
+              </div>
               <div className='flex items-center gap-2 ml-4'>
-                <span className='text-sm font-medium'>Color:</span>
+                <span className='text-md font-medium'>Color:</span>
                 <ColorPicker color={shapeColor} onChange={setShapeColor} />
               </div>
             </TabsContent>
 
-            <TabsContent value='text' className='flex items-center gap-4'>
+            <TabsContent value='text' className='flex items-center gap-4 m-1'>
               <div className='flex items-center gap-2'>
-                <span className='text-sm font-medium'>Text Color:</span>
+                <span className='text-md font-medium'>Text Color:</span>
                 <ColorPicker color={textColor} onChange={setTextColor} />
               </div>
               <Button onClick={addText}>Add Text</Button>
@@ -726,7 +730,7 @@ export default function WhiteboardComponent ({
 
             <TabsContent value='background' className='flex items-center gap-4'>
               <div className='flex items-center gap-2'>
-                <span className='text-sm font-medium'>Background Color:</span>
+                <span className='text-md font-medium'>Background Color:</span>
                 <ColorPicker
                   color={backgroundColor}
                   onChange={setBackgroundColor}
@@ -757,7 +761,7 @@ export default function WhiteboardComponent ({
           </div>
           <div className='flex gap-2'>
             <Button variant='destructive' onClick={clearCanvas}>
-              <Trash2 className='h-4 w-4 mr-2' />
+              <Trash2 className='h-3 md:h-4 w-3 md:w-4 md:mr-2' />
               Clear
             </Button>
           </div>
