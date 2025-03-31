@@ -1,167 +1,288 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, Pencil, Eye } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import ImageAnnotationModal from "@/components/image-learning/image-annotation-modal"
+import { useToast } from "@/hooks/use-toast"
+import { motion } from "framer-motion"
+import { Skeleton } from "@/components/ui/skeleton"
+import analyticsTracker from "@/lib/analytics"
 
-// Mock data for images
-const mockImages = [
-  {
-    id: "1",
-    title: "Human Anatomy: Skeletal System",
-    description: "Detailed diagram of the human skeletal system with labeled bones.",
-    category: "Biology",
-    imageUrl: "/placeholder.svg?height=400&width=600",
-    uploadedBy: "Professor Smith",
-    uploadedAt: "2023-05-15",
-    annotations: [
-      { id: "a1", x: 150, y: 100, text: "Skull", color: "#ff0000" },
-      { id: "a2", x: 300, y: 200, text: "Ribcage", color: "#00ff00" },
-      { id: "a3", x: 250, y: 350, text: "Femur", color: "#0000ff" },
-    ],
-  },
-  {
-    id: "2",
-    title: "Cell Structure",
-    description: "Diagram showing the structure of an animal cell with organelles.",
-    category: "Biology",
-    imageUrl: "/placeholder.svg?height=400&width=600",
-    uploadedBy: "Dr. Johnson",
-    uploadedAt: "2023-06-20",
-    annotations: [
-      { id: "a4", x: 200, y: 150, text: "Nucleus", color: "#ff0000" },
-      { id: "a5", x: 300, y: 250, text: "Mitochondria", color: "#00ff00" },
-    ],
-  },
-  {
-    id: "3",
-    title: "Periodic Table of Elements",
-    description: "Complete periodic table with all chemical elements.",
-    category: "Chemistry",
-    imageUrl: "/placeholder.svg?height=400&width=600",
-    uploadedBy: "Dr. Martinez",
-    uploadedAt: "2023-07-10",
-    annotations: [],
-  },
-  {
-    id: "4",
-    title: "World Map: Continents",
-    description: "Political world map showing all continents and major countries.",
-    category: "Geography",
-    imageUrl: "/placeholder.svg?height=400&width=600",
-    uploadedBy: "Professor Wilson",
-    uploadedAt: "2023-08-05",
-    annotations: [
-      { id: "a6", x: 150, y: 200, text: "North America", color: "#ff0000" },
-      { id: "a7", x: 350, y: 250, text: "Europe", color: "#00ff00" },
-      { id: "a8", x: 450, y: 300, text: "Asia", color: "#0000ff" },
-    ],
-  },
-  {
-    id: "5",
-    title: "Solar System",
-    description: "Diagram of our solar system showing planets and their orbits.",
-    category: "Astronomy",
-    imageUrl: "/placeholder.svg?height=400&width=600",
-    uploadedBy: "Dr. Chen",
-    uploadedAt: "2023-09-12",
-    annotations: [],
-  },
-  {
-    id: "6",
-    title: "Plant Cell Structure",
-    description: "Detailed diagram of a plant cell with labeled parts.",
-    category: "Biology",
-    imageUrl: "/placeholder.svg?height=400&width=600",
-    uploadedBy: "Professor Adams",
-    uploadedAt: "2023-10-18",
-    annotations: [],
-  },
-]
+interface Annotation {
+  id: string
+  x: number
+  y: number
+  text: string
+  color: string
+  createdBy?: {
+    _id: string
+    username: string
+  }
+}
+
+interface ImageItem {
+  _id: string
+  title: string
+  description: string
+  category: string
+  filePath: string
+  isPublic: boolean
+  annotations: Annotation[]
+  user: {
+    _id: string
+    username: string
+  }
+  createdAt: string
+  updatedAt: string
+}
 
 export default function ImageGallery() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedImage, setSelectedImage] = useState<(typeof mockImages)[0] | null>(null)
+  const [categoryFilter, setCategoryFilter] = useState("")
+  const [selectedImage, setSelectedImage] = useState<ImageItem | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
+  const [images, setImages] = useState<ImageItem[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const { toast } = useToast()
 
-  const filteredImages = mockImages.filter(
+  // Start analytics tracking
+  useEffect(() => {
+    analyticsTracker.startSession("image-learning")
+
+    return () => {
+      analyticsTracker.endSession()
+    }
+  }, [])
+
+  // Fetch images from API
+  useEffect(() => {
+    fetchImages()
+  }, [categoryFilter])
+
+  const fetchImages = async () => {
+    setIsLoading(true)
+    try {
+      let url = "/api/images"
+      if (categoryFilter) {
+        url += `?category=${encodeURIComponent(categoryFilter)}`
+      }
+
+      const response = await fetch(url)
+      if (response.ok) {
+        const data = await response.json()
+        setImages(data.images || [])
+      } else {
+        throw new Error("Failed to fetch images")
+      }
+    } catch (error) {
+      console.error("Error fetching images:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load images",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const filteredImages = images.filter(
     (image) =>
       image.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       image.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       image.category.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
-  const openImageModal = (image: (typeof mockImages)[0], editMode: boolean) => {
+  const openImageModal = (image: ImageItem, editMode: boolean) => {
     setSelectedImage(image)
     setIsEditMode(editMode)
     setIsModalOpen(true)
+    analyticsTracker.recordAction()
+  }
+
+  const handleAnnotationSave = async (imageId: string, annotations: Annotation[]) => {
+    try {
+      const response = await fetch(`/api/images/${imageId}/annotations`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ annotations }),
+      })
+
+      if (response.ok) {
+        // Update the image in the local state
+        setImages((prevImages) => prevImages.map((img) => (img._id === imageId ? { ...img, annotations } : img)))
+
+        if (selectedImage && selectedImage._id === imageId) {
+          setSelectedImage({ ...selectedImage, annotations })
+        }
+
+        toast({
+          title: "Success",
+          description: "Annotations saved successfully",
+        })
+      } else {
+        throw new Error("Failed to save annotations")
+      }
+    } catch (error) {
+      console.error("Error saving annotations:", error)
+      toast({
+        title: "Error",
+        description: "Failed to save annotations",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const deleteImage = async (imageId: string) => {
+    try {
+      const response = await fetch(`/api/images/${imageId}`, {
+        method: "DELETE",
+      })
+
+      if (response.ok) {
+        // Remove the image from the local state
+        setImages((prevImages) => prevImages.filter((img) => img._id !== imageId))
+
+        toast({
+          title: "Success",
+          description: "Image deleted successfully",
+        })
+      } else {
+        throw new Error("Failed to delete image")
+      }
+    } catch (error) {
+      console.error("Error deleting image:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete image",
+        variant: "destructive",
+      })
+    }
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Image Gallery</h2>
+      <motion.div
+        className="flex flex-col md:flex-row justify-between items-center gap-4"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <h2 className="text-2xl font-semibold">Image Gallery</h2>
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
             placeholder="Search images..."
-            className="pl-8"
+            className="pl-8 bg-background/80 backdrop-blur-sm border"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-      </div>
+      </motion.div>
 
-      {filteredImages.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center p-6">
-            <p className="text-center text-muted-foreground">No images found matching your search.</p>
-          </CardContent>
-        </Card>
-      ) : (
+      {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredImages.map((image) => (
-            <Card key={image.id} className="overflow-hidden">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Card key={i} className="overflow-hidden">
               <div className="relative h-48">
-                <img
-                  src={image.imageUrl || "/placeholder.svg"}
-                  alt={image.title}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute top-2 right-2">
-                  <Badge variant="secondary" className="bg-background/80">
-                    {image.category}
-                  </Badge>
-                </div>
+                <Skeleton className="h-full w-full" />
               </div>
               <CardContent className="p-4">
-                <h3 className="font-semibold truncate">{image.title}</h3>
-                <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{image.description}</p>
-                <div className="flex items-center text-xs text-muted-foreground mt-2">
-                  <span>{image.uploadedBy}</span>
-                  <span className="mx-1">•</span>
-                  <span>{image.uploadedAt}</span>
-                </div>
-                <div className="flex gap-2 mt-4">
-                  <Button variant="default" size="sm" className="flex-1" onClick={() => openImageModal(image, false)}>
-                    <Eye className="h-4 w-4 mr-1" />
-                    View
-                  </Button>
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => openImageModal(image, true)}>
-                    <Pencil className="h-4 w-4 mr-1" />
-                    Annotate
-                  </Button>
+                <Skeleton className="h-6 w-3/4 mb-2" />
+                <Skeleton className="h-4 w-full mb-1" />
+                <Skeleton className="h-4 w-2/3 mb-4" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-9 w-full" />
+                  <Skeleton className="h-9 w-full" />
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
+      ) : filteredImages.length === 0 ? (
+        <Card className="bg-background/80 backdrop-blur-sm border">
+          <CardContent className="flex flex-col items-center justify-center p-6">
+            <Search className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-center text-muted-foreground">No images found matching your search.</p>
+            <Button
+              className="mt-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white"
+              onClick={() => {
+                setSearchQuery("")
+                setCategoryFilter("")
+              }}
+            >
+              Clear Filters
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          {filteredImages.map((image, index) => (
+            <motion.div
+              key={image._id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
+            >
+              <Card className="overflow-hidden card-hover bg-background/80 backdrop-blur-sm border">
+                <div className="relative h-48">
+                  <img
+                    src={image.filePath || "/placeholder.svg"}
+                    alt={image.title}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute top-2 right-2">
+                    <Badge variant="secondary" className="bg-background/80 backdrop-blur-sm">
+                      {image.category}
+                    </Badge>
+                  </div>
+                </div>
+                <CardContent className="p-4">
+                  <h3 className="font-semibold truncate">{image.title}</h3>
+                  <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{image.description}</p>
+                  <div className="flex items-center text-xs text-muted-foreground mt-2">
+                    <span>{image.user.username}</span>
+                    <span className="mx-1">•</span>
+                    <span>{new Date(image.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex gap-2 mt-4">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white"
+                      onClick={() => openImageModal(image, false)}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      View
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 bg-background/80 backdrop-blur-sm"
+                      onClick={() => openImageModal(image, true)}
+                    >
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Annotate
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </motion.div>
       )}
 
       {selectedImage && (
@@ -170,6 +291,7 @@ export default function ImageGallery() {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           isEditMode={isEditMode}
+          onSave={handleAnnotationSave}
         />
       )}
     </div>

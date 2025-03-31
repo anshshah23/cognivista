@@ -1,70 +1,39 @@
-import { NextResponse } from "next/server"
-import { authenticateUser } from "@/middleware/authMiddleware"
-import { writeFile } from "fs/promises"
-import path from "path"
-import { v4 as uuidv4 } from "uuid"
-import fs from "fs/promises"
+import { NextRequest, NextResponse } from "next/server";
+import formidable from "formidable";
+import fs from "fs";
+import path from "path";
 
-// Handle file uploads
-export async function POST(request) {
-  try {
-    const auth = await authenticateUser(request)
-    if (auth.error) {
-      return NextResponse.json({ error: auth.error }, { status: auth.status })
-    }
+export const config = {
+  api: {
+    bodyParser: false, // Disable default bodyParser
+  },
+};
 
-    const formData = await request.formData()
-    const file = formData.get("file")
+export async function POST(req) {
+  return new Promise((resolve, reject) => {
+    const form = formidable({
+      multiples: false,
+      maxFileSize: 200 * 1024 * 1024, // ✅ Set 200MB file size limit
+      uploadDir: path.join(process.cwd(), "public/uploads/videos"),
+      keepExtensions: true,
+    });
 
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 })
-    }
+    form.parse(req, async (err, fields, files) => {
+      if (err) {
+        console.error("Upload Error:", err);
+        return reject(new NextResponse("File upload error", { status: 500 }));
+      }
 
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
+      const file = files.file?.[0]; // Get uploaded file
+      if (!file) {
+        return resolve(new NextResponse("No file uploaded", { status: 400 }));
+      }
 
-    // Create unique filename
-    const originalName = file.name
-    const extension = path.extname(originalName)
-    const filename = `${uuidv4()}${extension}`
+      const filePath = `/uploads/videos/${path.basename(file.filepath)}`;
 
-    // Determine file type and directory
-    const fileType = formData.get("type") || "image"
-    let uploadDir
-
-    switch (fileType) {
-      case "image":
-        uploadDir = path.join(process.cwd(), "public/uploads/images")
-        break
-      case "video":
-        uploadDir = path.join(process.cwd(), "public/uploads/videos")
-        break
-      case "document":
-        uploadDir = path.join(process.cwd(), "public/uploads/documents")
-        break
-      default:
-        uploadDir = path.join(process.cwd(), "public/uploads/other")
-    }
-
-    // Ensure directory exists
-    await fs.mkdir(uploadDir, { recursive: true })
-
-    // Write file to disk
-    const filePath = path.join(uploadDir, filename)
-    await writeFile(filePath, buffer)
-
-    // Return the public URL
-    const publicPath = `/uploads/${fileType}s/${filename}`
-
-    return NextResponse.json({
-      success: true,
-      filePath: publicPath,
-      filename,
-      originalName,
-    })
-  } catch (error) {
-    console.error("Upload Error:", error)
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 })
-  }
+      resolve(
+        NextResponse.json({ filePath }, { status: 200 })
+      );
+    });
+  });
 }
-

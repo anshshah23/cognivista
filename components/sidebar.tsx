@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { BookOpen, Home, Image, LogOut, MessageSquare, PenTool, Settings, User, Video, BarChart } from "lucide-react"
+import { BookOpen, Home, Image, LogOut, MessageSquare, PenTool, Settings, User, Video } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -22,7 +22,7 @@ const navItems = [
   { name: "Dashboard", href: "/", icon: Home },
   { name: "Whiteboard", href: "/whiteboard", icon: PenTool },
   { name: "Image Learning", href: "/image-learning", icon: Image },
-  { name: "Analytics", href: "/analytics", icon: BarChart },
+  { name: "Usage", href: "/analytics", icon: PenTool },
   { name: "Video Player", href: "/video", icon: Video },
   { name: "Quizzes", href: "/quizzes", icon: BookOpen },
   { name: "Collaboration", href: "/collaboration", icon: MessageSquare },
@@ -39,6 +39,23 @@ export default function Sidebar() {
   const { user, logout } = useAuth()
   const [isCollapsed, setIsCollapsed] = useState(false)
 
+  // Detect if the screen is mobile
+  const isMobile = () => window.innerWidth <= 768
+
+  // Collapse sidebar on mobile when a navigation item is clicked
+  const handleNavClick = () => {
+    if (isMobile()) setIsCollapsed(true)
+  }
+
+  // Ensure proper behavior on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (!isMobile()) setIsCollapsed(false)
+    }
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
+
   const handleLogout = async () => {
     try {
       await logout()
@@ -48,25 +65,23 @@ export default function Sidebar() {
     }
   }
 
-  const sidebarVariants = {
-    expanded: { width: "16rem" },
-    collapsed: { width: "4rem" },
-  }
-
   return (
     <motion.div
-      className="flex flex-col h-screen border-r bg-background/80 backdrop-blur-sm z-10"
-      initial={false}
-      animate={isCollapsed ? "collapsed" : "expanded"}
-      variants={sidebarVariants}
-      transition={{ duration: 0.3, ease: "easeInOut" }}
+      className={cn(
+        "flex flex-col h-screen border-r bg-background/80 backdrop-blur-sm z-10 transition-all duration-300",
+        isCollapsed ? "w-14" : "w-screen sm:w-56"
+      )}
     >
       {/* Header Section */}
       <div className="flex h-16 items-center border-b px-3 shrink-0">
-        <Link href="/" className="flex items-center">
-          <div className="relative h-8 w-8 overflow-hidden rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500">
-            <div className="absolute inset-0 flex items-center justify-center text-white font-bold">SE</div>
-          </div>
+        <Link href="/" className="flex items-center" onClick={handleNavClick}>
+          {!isCollapsed && (
+            <div className="relative h-8 w-8 overflow-hidden rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500">
+              <div className="absolute inset-0 flex items-center justify-center text-white font-bold">
+                SE
+              </div>
+            </div>
+          )}
           {!isCollapsed && (
             <motion.span
               className="ml-2 text-lg font-semibold gradient-text"
@@ -105,8 +120,9 @@ export default function Sidebar() {
                     isActive
                       ? "bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 text-primary"
                       : "hover:bg-accent/50 hover:text-primary",
-                    isCollapsed && "justify-center px-0",
+                    isCollapsed && "justify-center px-0"
                   )}
+                  onClick={handleNavClick}
                 >
                   <item.icon className={cn("h-5 w-5", isActive ? "text-primary" : "text-muted-foreground")} />
 
@@ -173,7 +189,7 @@ export default function Sidebar() {
 
             {userItems.map((item) => (
               <DropdownMenuItem key={item.name} asChild>
-                <Link href={item.href} className="flex items-center cursor-pointer">
+                <Link href={item.href} className="flex items-center cursor-pointer" onClick={handleNavClick}>
                   <item.icon className="mr-2 h-4 w-4 text-primary" />
                   <span>{item.name}</span>
                 </Link>
@@ -182,7 +198,10 @@ export default function Sidebar() {
 
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={handleLogout}
+              onClick={() => {
+                handleLogout()
+                handleNavClick()
+              }}
               className="cursor-pointer flex items-center text-destructive focus:text-destructive"
             >
               <LogOut className="mr-2 h-4 w-4" />
@@ -194,4 +213,3 @@ export default function Sidebar() {
     </motion.div>
   )
 }
-

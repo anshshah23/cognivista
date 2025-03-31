@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,107 +18,124 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import QuizTaker from "@/components/quizzes/quiz-taker"
+import { useToast } from "@/hooks/use-toast"
+import { motion } from "framer-motion"
+import { Skeleton } from "@/components/ui/skeleton"
 
-// Mock data for quizzes
-const mockQuizzes = [
-  {
-    id: "1",
-    title: "Introduction to Mathematics",
-    description: "Test your basic math knowledge with this quiz.",
-    subject: "Mathematics",
-    timeLimit: 15,
-    isPublic: true,
-    questions: 10,
-    createdBy: "Professor Smith",
-    createdAt: "2023-05-15",
-    attempts: 245,
-  },
-  {
-    id: "2",
-    title: "Physics Fundamentals",
-    description: "Test your understanding of basic physics concepts.",
-    subject: "Physics",
-    timeLimit: 20,
-    isPublic: true,
-    questions: 15,
-    createdBy: "Dr. Johnson",
-    createdAt: "2023-06-20",
-    attempts: 187,
-  },
-  {
-    id: "3",
-    title: "Chemistry Basics",
-    description: "A quiz covering fundamental chemistry concepts.",
-    subject: "Chemistry",
-    timeLimit: 30,
-    isPublic: false,
-    questions: 20,
-    createdBy: "Dr. Martinez",
-    createdAt: "2023-07-10",
-    attempts: 132,
-  },
-  {
-    id: "4",
-    title: "Biology: Cell Structure",
-    description: "Test your knowledge of cell structure and function.",
-    subject: "Biology",
-    timeLimit: 25,
-    isPublic: true,
-    questions: 12,
-    createdBy: "Professor Wilson",
-    createdAt: "2023-08-05",
-    attempts: 198,
-  },
-  {
-    id: "5",
-    title: "Computer Science: Algorithms",
-    description: "Test your understanding of basic algorithms.",
-    subject: "Computer Science",
-    timeLimit: 45,
-    isPublic: true,
-    questions: 15,
-    createdBy: "Dr. Chen",
-    createdAt: "2023-09-12",
-    attempts: 156,
-  },
-  {
-    id: "6",
-    title: "History: Ancient Civilizations",
-    description: "Test your knowledge of ancient civilizations.",
-    subject: "History",
-    timeLimit: 30,
-    isPublic: true,
-    questions: 25,
-    createdBy: "Professor Adams",
-    createdAt: "2023-10-18",
-    attempts: 112,
-  },
-]
+interface Quiz {
+  _id: string
+  title: string
+  description: string
+  subject: string
+  timeLimit: number
+  isPublic: boolean
+  questions: any[]
+  user: {
+    _id: string
+    username: string
+  }
+  createdAt: string
+  attempts: number
+}
 
 export default function QuizList() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedQuiz, setSelectedQuiz] = useState<(typeof mockQuizzes)[0] | null>(null)
+  const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null)
   const [isQuizModalOpen, setIsQuizModalOpen] = useState(false)
+  const [quizzes, setQuizzes] = useState<Quiz[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const { toast } = useToast()
 
-  const filteredQuizzes = mockQuizzes.filter(
+  // Fetch quizzes on component mount
+  useEffect(() => {
+    fetchQuizzes()
+  }, [])
+
+  const fetchQuizzes = async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch("/api/quizzes")
+      if (response.ok) {
+        const data = await response.json()
+        setQuizzes(data.quizzes || [])
+      } else {
+        throw new Error("Failed to fetch quizzes")
+      }
+    } catch (error) {
+      console.error("Error fetching quizzes:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load quizzes",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const filteredQuizzes = quizzes.filter(
     (quiz) =>
       quiz.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       quiz.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       quiz.subject.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
-  const deleteQuiz = (id: string) => {
-    // In a real app, you would delete the quiz from your backend
-    console.log("Deleting quiz:", id)
+  const deleteQuiz = async (id: string) => {
+    try {
+      const response = await fetch(`/api/quizzes/${id}`, {
+        method: "DELETE",
+      })
+
+      if (response.ok) {
+        // Remove the quiz from the local state
+        setQuizzes((prevQuizzes) => prevQuizzes.filter((quiz) => quiz._id !== id))
+
+        toast({
+          title: "Success",
+          description: "Quiz deleted successfully",
+        })
+      } else {
+        throw new Error("Failed to delete quiz")
+      }
+    } catch (error) {
+      console.error("Error deleting quiz:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete quiz",
+        variant: "destructive",
+      })
+    }
   }
 
-  const startQuiz = (quiz: (typeof mockQuizzes)[0]) => {
-    setSelectedQuiz(quiz)
-    setIsQuizModalOpen(true)
+  const startQuiz = async (quiz: Quiz) => {
+    try {
+      // Fetch the full quiz with questions
+      const response = await fetch(`/api/quizzes/${quiz._id}`)
+
+      if (response.ok) {
+        const data = await response.json()
+        setSelectedQuiz(data.quiz)
+        setIsQuizModalOpen(true)
+      } else {
+        throw new Error("Failed to load quiz")
+      }
+    } catch (error) {
+      console.error("Error loading quiz:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load quiz",
+        variant: "destructive",
+      })
+    }
   }
 
   return (
-    <div className="space-y-4">
+    <motion.div
+      className="space-y-4"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Available Quizzes</h2>
         <div className="relative w-full max-w-sm">
@@ -126,78 +143,138 @@ export default function QuizList() {
           <Input
             type="search"
             placeholder="Search quizzes..."
-            className="pl-8"
+            className="pl-8 bg-background/80 backdrop-blur-sm border"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </div>
 
-      {filteredQuizzes.length === 0 ? (
-        <Card>
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Card key={i} className="overflow-hidden">
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <Skeleton className="h-6 w-3/4" />
+                    <Skeleton className="h-6 w-16" />
+                  </div>
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-5/6" />
+                  <div className="flex gap-2 pt-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                  <div className="flex gap-2 pt-4">
+                    <Skeleton className="h-9 w-full" />
+                    <Skeleton className="h-9 w-full" />
+                    <Skeleton className="h-9 w-10" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : filteredQuizzes.length === 0 ? (
+        <Card className="bg-background/80 backdrop-blur-sm border">
           <CardContent className="flex flex-col items-center justify-center p-6">
+            <Search className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-center text-muted-foreground">No quizzes found matching your search.</p>
+            <Button
+              className="mt-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white"
+              onClick={() => setSearchQuery("")}
+            >
+              Clear Search
+            </Button>
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredQuizzes.map((quiz) => (
-            <Card key={quiz.id} className="overflow-hidden">
-              <CardContent className="p-4">
-                <div className="flex justify-between items-start">
-                  <h3 className="font-semibold truncate">{quiz.title}</h3>
-                  <Badge variant={quiz.isPublic ? "default" : "secondary"}>
-                    {quiz.isPublic ? "Public" : "Private"}
-                  </Badge>
-                </div>
-                <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{quiz.description}</p>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <Badge variant="outline">{quiz.subject}</Badge>
-                  <div className="flex items-center text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3 mr-1" />
-                    {quiz.timeLimit} min
+          {filteredQuizzes.map((quiz, index) => (
+            <motion.div
+              key={quiz._id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
+            >
+              <Card className="overflow-hidden card-hover bg-background/80 backdrop-blur-sm border">
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start">
+                    <h3 className="font-semibold truncate">{quiz.title}</h3>
+                    <Badge
+                      variant={quiz.isPublic ? "default" : "secondary"}
+                      className={
+                        quiz.isPublic
+                          ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white} className={quiz.isPublic ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+                          : "bg-background/80 backdrop-blur-sm"
+                      }
+                    >
+                      {quiz.isPublic ? "Public" : "Private"}
+                    </Badge>
                   </div>
-                  <div className="flex items-center text-xs text-muted-foreground">
-                    <Calendar className="h-3 w-3 mr-1" />
-                    {quiz.createdAt}
+                  <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{quiz.description}</p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <Badge variant="outline" className="bg-background/80 backdrop-blur-sm">
+                      {quiz.subject}
+                    </Badge>
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3 mr-1" />
+                      {quiz.timeLimit} min
+                    </div>
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3 mr-1" />
+                      {new Date(quiz.createdAt).toLocaleDateString()}
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground mt-2">
-                  <span>By {quiz.createdBy}</span>
-                  <span>{quiz.questions} questions</span>
-                  <span>{quiz.attempts} attempts</span>
-                </div>
-                <div className="flex gap-2 mt-4">
-                  <Button variant="default" size="sm" className="flex-1" onClick={() => startQuiz(quiz)}>
-                    <Play className="h-4 w-4 mr-1" />
-                    Start
-                  </Button>
-                  <Button variant="outline" size="sm" className="flex-1">
-                    <Edit className="h-4 w-4 mr-1" />
-                    Edit
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="icon">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Quiz</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete "{quiz.title}"? This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => deleteQuiz(quiz.id)}>Delete</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mt-2">
+                    <span>By {quiz.user.username}</span>
+                    <span>{quiz.questions.length} questions</span>
+                    <span>{quiz.attempts} attempts</span>
+                  </div>
+                  <div className="flex gap-2 mt-4">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white"
+                      onClick={() => startQuiz(quiz)}
+                    >
+                      <Play className="h-4 w-4 mr-1" />
+                      Start
+                    </Button>
+                    <Button variant="outline" size="sm" className="flex-1 bg-background/80 backdrop-blur-sm">
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="icon" className="bg-background/80 backdrop-blur-sm">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-background/95 backdrop-blur-sm border">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Quiz</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete "{quiz.title}"? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="bg-background/80 backdrop-blur-sm">Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteQuiz(quiz._id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           ))}
         </div>
       )}
@@ -205,7 +282,7 @@ export default function QuizList() {
       {selectedQuiz && (
         <QuizTaker quiz={selectedQuiz} isOpen={isQuizModalOpen} onClose={() => setIsQuizModalOpen(false)} />
       )}
-    </div>
+    </motion.div>
   )
 }
 

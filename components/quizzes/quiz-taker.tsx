@@ -8,75 +8,30 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { Clock, ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import { motion, AnimatePresence } from "framer-motion"
+import analyticsTracker from "@/lib/analytics"
 
-// Mock questions for the quiz
-const mockQuestions = [
-  {
-    id: "q1",
-    text: "What is the capital of France?",
-    type: "multiple-choice",
-    options: [
-      { id: "opt1", text: "London" },
-      { id: "opt2", text: "Berlin" },
-      { id: "opt3", text: "Paris" },
-      { id: "opt4", text: "Madrid" },
-    ],
-    correctAnswers: ["opt3"],
-  },
-  {
-    id: "q2",
-    text: "The Earth revolves around the Sun.",
-    type: "true-false",
-    options: [
-      { id: "opt1", text: "True" },
-      { id: "opt2", text: "False" },
-    ],
-    correctAnswers: ["opt1"],
-  },
-  {
-    id: "q3",
-    text: "Which of the following are primary colors?",
-    type: "multiple-select",
-    options: [
-      { id: "opt1", text: "Red" },
-      { id: "opt2", text: "Green" },
-      { id: "opt3", text: "Blue" },
-      { id: "opt4", text: "Yellow" },
-    ],
-    correctAnswers: ["opt1", "opt3", "opt4"],
-  },
-  {
-    id: "q4",
-    text: "What is the chemical symbol for water?",
-    type: "multiple-choice",
-    options: [
-      { id: "opt1", text: "WA" },
-      { id: "opt2", text: "H2O" },
-      { id: "opt3", text: "CO2" },
-      { id: "opt4", text: "O2" },
-    ],
-    correctAnswers: ["opt2"],
-  },
-  {
-    id: "q5",
-    text: "Which of the following are planets in our solar system?",
-    type: "multiple-select",
-    options: [
-      { id: "opt1", text: "Earth" },
-      { id: "opt2", text: "Moon" },
-      { id: "opt3", text: "Mars" },
-      { id: "opt4", text: "Sun" },
-    ],
-    correctAnswers: ["opt1", "opt3"],
-  },
-]
+interface Option {
+  id: string
+  text: string
+}
+
+interface Question {
+  id: string
+  text: string
+  type: "multiple-choice" | "true-false" | "multiple-select"
+  options: Option[]
+  correctAnswers: string[]
+}
 
 interface QuizTakerProps {
   quiz: {
-    id: string
+    _id: string
     title: string
     description: string
     timeLimit: number
+    questions: Question[]
   }
   isOpen: boolean
   onClose: () => void
@@ -87,10 +42,20 @@ export default function QuizTaker({ quiz, isOpen, onClose }: QuizTakerProps) {
   const [answers, setAnswers] = useState<Record<string, string[]>>({})
   const [timeRemaining, setTimeRemaining] = useState(quiz.timeLimit * 60)
   const [quizCompleted, setQuizCompleted] = useState(false)
-  const [score, setScore] = useState({ correct: 0, total: mockQuestions.length })
+  const [score, setScore] = useState({ correct: 0, total: 0, percentage: 0 })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [result, setResult] = useState<any>(null)
+  const { toast } = useToast()
 
-  const currentQuestion = mockQuestions[currentQuestionIndex]
-  const progress = ((currentQuestionIndex + 1) / mockQuestions.length) * 100
+  const currentQuestion = quiz.questions[currentQuestionIndex]
+  const progress = ((currentQuestionIndex + 1) / quiz.questions.length) * 100
+
+  // Record analytics when quiz starts
+  useEffect(() => {
+    if (isOpen) {
+      analyticsTracker.recordAction()
+    }
+  }, [isOpen])
 
   // Timer effect
   useEffect(() => {
@@ -109,6 +74,17 @@ export default function QuizTaker({ quiz, isOpen, onClose }: QuizTakerProps) {
 
     return () => clearInterval(timer)
   }, [isOpen, quizCompleted, quiz.timeLimit])
+
+  // Reset state when quiz changes
+  useEffect(() => {
+    if (quiz) {
+      setCurrentQuestionIndex(0)
+      setAnswers({})
+      setTimeRemaining(quiz.timeLimit * 60)
+      setQuizCompleted(false)
+      setScore({ correct: 0, total: quiz.questions.length, percentage: 0 })
+    }
+  }, [quiz])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -142,7 +118,7 @@ export default function QuizTaker({ quiz, isOpen, onClose }: QuizTakerProps) {
   }
 
   const goToNextQuestion = () => {
-    if (currentQuestionIndex < mockQuestions.length - 1) {
+    if (currentQuestionIndex < quiz.questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1)
     } else {
       submitQuiz()
@@ -155,29 +131,56 @@ export default function QuizTaker({ quiz, isOpen, onClose }: QuizTakerProps) {
     }
   }
 
-  const submitQuiz = () => {
-    // Calculate score
-    let correctCount = 0
+  const submitQuiz = async () => {
+    if (isSubmitting) return
 
-    mockQuestions.forEach((question) => {
-      const userAnswers = answers[question.id] || []
-      const correctAnswers = question.correctAnswers
+    setIsSubmitting(true)
+    analyticsTracker.recordAction()
 
-      // Check if arrays have the same elements (regardless of order)
-      const isCorrect =
-        userAnswers.length === correctAnswers.length && userAnswers.every((answer) => correctAnswers.includes(answer))
+    try {
+      // Format answers for submission
+      const formattedAnswers = Object.entries(answers).map(([questionId, selectedOptions]) => ({
+        questionId,
+        selectedOptions,
+      }))
 
-      if (isCorrect) {
-        correctCount++
+      // Submit to API
+      const response = await fetch(`/api/quizzes/${quiz._id}/submit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          answers: formattedAnswers,
+          timeSpent: quiz.timeLimit * 60 - timeRemaining,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to submit quiz")
       }
-    })
 
-    setScore({
-      correct: correctCount,
-      total: mockQuestions.length,
-    })
+      const data = await response.json()
 
-    setQuizCompleted(true)
+      // Set result and score
+      setResult(data.result)
+      setScore({
+        correct: data.result.score,
+        total: data.result.totalQuestions,
+        percentage: data.result.percentage,
+      })
+
+      setQuizCompleted(true)
+    } catch (error) {
+      console.error("Error submitting quiz:", error)
+      toast({
+        title: "Error",
+        description: "Failed to submit quiz. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const restartQuiz = () => {
@@ -185,11 +188,12 @@ export default function QuizTaker({ quiz, isOpen, onClose }: QuizTakerProps) {
     setAnswers({})
     setTimeRemaining(quiz.timeLimit * 60)
     setQuizCompleted(false)
+    setResult(null)
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-3xl bg-background/95 backdrop-blur-sm border">
         {!quizCompleted ? (
           <>
             <DialogHeader>
@@ -199,7 +203,7 @@ export default function QuizTaker({ quiz, isOpen, onClose }: QuizTakerProps) {
 
             <div className="flex justify-between items-center">
               <div className="text-sm">
-                Question {currentQuestionIndex + 1} of {mockQuestions.length}
+                Question {currentQuestionIndex + 1} of {quiz.questions.length}
               </div>
               {quiz.timeLimit > 0 && (
                 <div className="flex items-center text-sm">
@@ -211,49 +215,70 @@ export default function QuizTaker({ quiz, isOpen, onClose }: QuizTakerProps) {
 
             <Progress value={progress} className="h-2" />
 
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">{currentQuestion.text}</h3>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentQuestionIndex}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-4"
+              >
+                <h3 className="text-lg font-medium">{currentQuestion.text}</h3>
 
-              {currentQuestion.type === "multiple-choice" || currentQuestion.type === "true-false" ? (
-                <RadioGroup
-                  value={answers[currentQuestion.id]?.[0] || ""}
-                  onValueChange={handleSingleAnswerChange}
-                  className="space-y-2"
-                >
-                  {currentQuestion.options.map((option) => (
-                    <div key={option.id} className="flex items-center space-x-2">
-                      <RadioGroupItem value={option.id} id={option.id} />
-                      <Label htmlFor={option.id}>{option.text}</Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-              ) : (
-                <div className="space-y-2">
-                  {currentQuestion.options.map((option) => (
-                    <div key={option.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={option.id}
-                        checked={(answers[currentQuestion.id] || []).includes(option.id)}
-                        onCheckedChange={(checked) => handleMultipleAnswerChange(option.id, checked as boolean)}
-                      />
-                      <Label htmlFor={option.id}>{option.text}</Label>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                {currentQuestion.type === "multiple-choice" || currentQuestion.type === "true-false" ? (
+                  <RadioGroup
+                    value={answers[currentQuestion.id]?.[0] || ""}
+                    onValueChange={handleSingleAnswerChange}
+                    className="space-y-2"
+                  >
+                    {currentQuestion.options.map((option) => (
+                      <div key={option.id} className="flex items-center space-x-2">
+                        <RadioGroupItem value={option.id} id={option.id} />
+                        <Label htmlFor={option.id}>{option.text}</Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                ) : (
+                  <div className="space-y-2">
+                    {currentQuestion.options.map((option) => (
+                      <div key={option.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={option.id}
+                          checked={(answers[currentQuestion.id] || []).includes(option.id)}
+                          onCheckedChange={(checked) => handleMultipleAnswerChange(option.id, checked as boolean)}
+                        />
+                        <Label htmlFor={option.id}>{option.text}</Label>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
 
             <div className="flex justify-between">
-              <Button variant="outline" onClick={goToPreviousQuestion} disabled={currentQuestionIndex === 0}>
+              <Button
+                variant="outline"
+                onClick={goToPreviousQuestion}
+                disabled={currentQuestionIndex === 0}
+                className="bg-background/80 backdrop-blur-sm"
+              >
                 <ArrowLeft className="h-4 w-4 mr-1" />
                 Previous
               </Button>
-              <Button variant="default" onClick={goToNextQuestion}>
-                {currentQuestionIndex < mockQuestions.length - 1 ? (
+              <Button
+                variant="default"
+                onClick={goToNextQuestion}
+                disabled={isSubmitting}
+                className="bg-gradient-to-r from-blue-500 to-purple-500 text-white"
+              >
+                {currentQuestionIndex < quiz.questions.length - 1 ? (
                   <>
                     Next
                     <ArrowRight className="h-4 w-4 ml-1" />
                   </>
+                ) : isSubmitting ? (
+                  "Submitting..."
                 ) : (
                   "Submit Quiz"
                 )}
@@ -268,47 +293,114 @@ export default function QuizTaker({ quiz, isOpen, onClose }: QuizTakerProps) {
             </DialogHeader>
 
             <div className="flex flex-col items-center justify-center py-6">
-              <div className="text-center mb-4">
-                <CheckCircle2 className="h-16 w-16 text-primary mx-auto mb-2" />
-                <h2 className="text-2xl font-bold">
+              <motion.div
+                className="text-center mb-4"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.5 }}
+              >
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-2xl font-bold">{score.percentage}%</span>
+                  </div>
+                  <svg className="w-32 h-32" viewBox="0 0 100 100">
+                    <circle
+                      className="text-muted stroke-current"
+                      strokeWidth="10"
+                      fill="transparent"
+                      r="40"
+                      cx="50"
+                      cy="50"
+                    />
+                    <circle
+                      className="text-primary stroke-current"
+                      strokeWidth="10"
+                      strokeLinecap="round"
+                      fill="transparent"
+                      r="40"
+                      cx="50"
+                      cy="50"
+                      strokeDasharray={`${2 * Math.PI * 40}`}
+                      strokeDashoffset={`${2 * Math.PI * 40 * (1 - score.percentage / 100)}`}
+                      transform="rotate(-90 50 50)"
+                    />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold mt-2">
                   {score.correct} / {score.total} Correct
                 </h2>
-                <p className="text-muted-foreground">Your score: {Math.round((score.correct / score.total) * 100)}%</p>
-              </div>
+                <p className="text-muted-foreground">
+                  {score.percentage >= 80
+                    ? "Excellent work!"
+                    : score.percentage >= 60
+                      ? "Good job!"
+                      : "Keep practicing!"}
+                </p>
+              </motion.div>
 
               <div className="w-full max-w-md space-y-4">
-                {mockQuestions.map((question, index) => {
-                  const userAnswers = answers[question.id] || []
-                  const isCorrect =
-                    userAnswers.length === question.correctAnswers.length &&
-                    userAnswers.every((answer) => question.correctAnswers.includes(answer))
+                {result &&
+                  result.answers &&
+                  result.answers.map((answer: any, index: number) => {
+                    const question = quiz.questions.find((q) => q.id === answer.questionId)
+                    if (!question) return null
 
-                  return (
-                    <div
-                      key={question.id}
-                      className={`p-3 rounded-md ${isCorrect ? "bg-green-50 dark:bg-green-950/20" : "bg-red-50 dark:bg-red-950/20"}`}
-                    >
-                      <p className="font-medium">
-                        {index + 1}. {question.text}
-                      </p>
-                      <p className="text-sm mt-1">
-                        {isCorrect ? (
-                          <span className="text-green-600 dark:text-green-400">Correct</span>
-                        ) : (
-                          <span className="text-red-600 dark:text-red-400">Incorrect</span>
-                        )}
-                      </p>
-                    </div>
-                  )
-                })}
+                    return (
+                      <motion.div
+                        key={answer.questionId}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 }}
+                        className={`p-3 rounded-md ${
+                          answer.isCorrect
+                            ? "bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900"
+                            : "bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900"
+                        }`}
+                      >
+                        <p className="font-medium">
+                          {index + 1}. {question.text}
+                        </p>
+                        <div className="mt-2 space-y-1 text-sm">
+                          {question.options.map((option) => {
+                            const isSelected = answer.selectedOptions.includes(option.id)
+                            const isCorrect = question.correctAnswers.includes(option.id)
+
+                            return (
+                              <div key={option.id} className="flex items-start">
+                                <div className="mt-0.5 mr-2 w-4 h-4 flex-shrink-0">
+                                  {isSelected && isCorrect && <CheckCircle2 className="w-4 h-4 text-green-500" />}
+                                  {isSelected && !isCorrect && <div className="w-4 h-4 rounded-full bg-red-500" />}
+                                  {!isSelected && isCorrect && (
+                                    <div className="w-4 h-4 rounded-full border-2 border-green-500" />
+                                  )}
+                                </div>
+                                <span className={`${isCorrect ? "font-medium" : ""}`}>{option.text}</span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                        <p className="text-sm mt-1">
+                          {answer.isCorrect ? (
+                            <span className="text-green-600 dark:text-green-400">Correct</span>
+                          ) : (
+                            <span className="text-red-600 dark:text-red-400">Incorrect</span>
+                          )}
+                        </p>
+                      </motion.div>
+                    )
+                  })}
               </div>
             </div>
 
             <div className="flex justify-between">
-              <Button variant="outline" onClick={onClose}>
+              <Button variant="outline" onClick={onClose} className="bg-background/80 backdrop-blur-sm">
                 Close
               </Button>
-              <Button variant="default" onClick={restartQuiz}>
+              <Button
+                variant="default"
+                onClick={restartQuiz}
+                className="bg-gradient-to-r from-blue-500 to-purple-500 text-white"
+              >
                 Restart Quiz
               </Button>
             </div>
