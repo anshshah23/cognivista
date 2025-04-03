@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { BookOpen, Home, Image, LogOut, MessageSquare, PenTool, Settings, User, Video } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { BookOpen, Home, Image, LogOut, MessageSquare, PenTool, Settings, User, Video, BarChart } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,10 +22,10 @@ const navItems = [
   { name: "Dashboard", href: "/", icon: Home },
   { name: "Whiteboard", href: "/whiteboard", icon: PenTool },
   { name: "Image Learning", href: "/image-learning", icon: Image },
-  { name: "Usage", href: "/analytics", icon: PenTool },
   { name: "Video Player", href: "/video", icon: Video },
   { name: "Quizzes", href: "/quizzes", icon: BookOpen },
   { name: "Collaboration", href: "/collaboration", icon: MessageSquare },
+  { name: "Usage", href: "/analytics", icon: BarChart },
 ]
 
 const userItems = [

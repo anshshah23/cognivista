@@ -1,3 +1,8 @@
+export const metadata = {
+  title: "Signup - CogniVIsta",
+  description: "Create a new account on CogniVIsta",
+}
+
 import SignupForm from "@/components/auth/signup-form"
 
 export default function SignupPage() {

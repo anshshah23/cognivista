@@ -1,84 +1,55 @@
-"use client";
+"use client"
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useAuth } from "@/lib/authContext";
-import axios from "axios";
+import type React from "react"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useAuth } from "@/lib/authContext"
 
 export default function SignupForm() {
-  const [user, setUser] = useState({
-    username: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
+  const [username, setUsername] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
+  const { signup } = useAuth()
 
-  interface User {
-    username: string;
-    email: string;
-    password: string;
-    confirmPassword: string;
-  }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
 
-  interface SignupResponse {
-    data: {
-      message: string;
-    };
-  }
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setError("");
-
-    if (!user.username || !user.email || !user.password || !user.confirmPassword) {
-      setError("Please fill all fields!");
-      return;
+    if (password !== confirmPassword) {
+      setError("Passwords do not match")
+      return
     }
 
-    if (user.password.length < 6) {
-      setError("Password must be at least 6 characters long.");
-      return;
-    }
-
-    if (user.password !== user.confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-
-    setIsLoading(true);
+    setIsLoading(true)
 
     try {
-      const { data }: SignupResponse = await axios.post(`/api/auth/signup`, {
-        username: user.username,
-        email: user.email,
-        password: user.password,
-      });
-      console.log("User registered:", data);
-      alert("Signup successful!");
-      router.push("/login?registered=true");
+      await signup(username, email, password)
+      router.push("/login?registered=true")
     } catch (err: any) {
-      setError(err.response?.data?.error || "Signup failed. Please try again.");
+      setError(err.message || "Signup failed. Please try again.")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
+    <Card className="w-full max-w-md border-0 shadow-lg bg-background/90 backdrop-blur-md">
+      <CardHeader className="space-y-1 text-center">
         <CardTitle>Create an Account</CardTitle>
         <CardDescription>Sign up to get started with the educational platform</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <Alert variant="destructive">
@@ -89,8 +60,8 @@ export default function SignupForm() {
             <Label htmlFor="username">Username</Label>
             <Input
               id="username"
-              value={user.username}
-              onChange={(e) => setUser({ ...user, username: e.target.value })}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               placeholder="Enter your username"
               required
             />
@@ -100,8 +71,8 @@ export default function SignupForm() {
             <Input
               id="email"
               type="email"
-              value={user.email}
-              onChange={(e) => setUser({ ...user, email: e.target.value })}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
               required
             />
@@ -111,8 +82,8 @@ export default function SignupForm() {
             <Input
               id="password"
               type="password"
-              value={user.password}
-              onChange={(e) => setUser({ ...user, password: e.target.value })}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               placeholder="Create a password"
               required
             />
@@ -122,13 +93,17 @@ export default function SignupForm() {
             <Input
               id="confirmPassword"
               type="password"
-              value={user.confirmPassword}
-              onChange={(e) => setUser({ ...user, confirmPassword: e.target.value })}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm your password"
               required
             />
           </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button
+            type="submit"
+            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+            disabled={isLoading}
+          >
             {isLoading ? "Creating account..." : "Sign Up"}
           </Button>
         </form>
@@ -142,5 +117,6 @@ export default function SignupForm() {
         </p>
       </CardFooter>
     </Card>
-  );
+  )
 }
+

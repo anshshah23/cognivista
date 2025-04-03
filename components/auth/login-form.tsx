@@ -36,12 +36,12 @@ export default function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
+    <Card className="w-full max-w-md border-0 shadow-lg bg-background/90 backdrop-blur-md">
+      <CardHeader className="space-y-1 text-center">
         <CardTitle>Login</CardTitle>
         <CardDescription>Enter your credentials to access your account</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <Alert variant="destructive">
@@ -75,7 +75,11 @@ export default function LoginForm() {
               required
             />
           </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button
+            type="submit"
+            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+            disabled={isLoading}
+          >
             {isLoading ? "Logging in..." : "Login"}
           </Button>
         </form>

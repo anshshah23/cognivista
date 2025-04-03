@@ -28,12 +28,14 @@ export const config = {
     "/",
     "/login",
     "/signup",
+    "/forgot-password",
     "/settings/:path*",
     "/whiteboard/:path*",
     "/image-learning/:path*",
     "/video/:path*",
     "/quizzes/:path*",
     "/collaboration/:path*",
+    "/analytics/:path*",
   ],
 }
 
