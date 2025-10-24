@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import analyticsTracker from "@/lib/analytics"
+import DOMPurify from "isomorphic-dompurify"
 
 interface Collaborator {
   _id: string
@@ -317,15 +318,11 @@ export default function CollaborationEditor() {
     // Replace newlines with breaks for remaining cases
     formatted = formatted.replace(/\n/g, "<br>")
 
-    // Sanitize the HTML to prevent XSS attacks
-    // DOMPurify will remove any malicious scripts, event handlers, etc.
-    const sanitized = DOMPurify.sanitize(formatted, {
+    // Sanitize HTML to prevent XSS attacks
+    return DOMPurify.sanitize(formatted, {
       ALLOWED_TAGS: ['h1', 'h2', 'h3', 'p', 'strong', 'em', 'ul', 'li', 'br'],
       ALLOWED_ATTR: [],
-      KEEP_CONTENT: true
     })
-
-    return sanitized
   }
 
   return (
