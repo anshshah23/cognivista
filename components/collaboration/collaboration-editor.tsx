@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import DOMPurify from "dompurify"
 
 import { useState, useEffect, useRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
