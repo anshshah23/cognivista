@@ -51,6 +51,7 @@
     "formidable": "^3.5.2",
     "framer-motion": "^12.6.2",
     "input-otp": "1.4.1",
+    "isomorphic-dompurify": "^2.30.1",
     "jsonwebtoken": "latest",
     "lucide-react": "^0.454.0",
     "mongoose": "latest",

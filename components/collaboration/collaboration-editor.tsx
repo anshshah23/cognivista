@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import analyticsTracker from "@/lib/analytics"
+import DOMPurify from "isomorphic-dompurify"
 
 interface Collaborator {
   _id: string
@@ -288,7 +289,7 @@ export default function CollaborationEditor() {
     return (lineBreaks.length - 1) * lineHeight
   }
 
-  // Simple markdown formatter
+  // Simple markdown formatter with XSS protection
   function formatMarkdown(text: string): string {
     // This is a very simplified markdown parser
     // In a real app, you would use a proper markdown library
@@ -316,7 +317,11 @@ export default function CollaborationEditor() {
     // Replace newlines with breaks for remaining cases
     formatted = formatted.replace(/\n/g, "<br>")
 
-    return formatted
+    // Sanitize HTML to prevent XSS attacks
+    return DOMPurify.sanitize(formatted, {
+      ALLOWED_TAGS: ['h1', 'h2', 'h3', 'p', 'strong', 'em', 'ul', 'li', 'br'],
+      ALLOWED_ATTR: [],
+    })
   }
 
   return (
