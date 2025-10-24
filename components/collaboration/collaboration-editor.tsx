@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import DOMPurify from "dompurify"
 
 import { useState, useEffect, useRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
@@ -288,7 +289,7 @@ export default function CollaborationEditor() {
     return (lineBreaks.length - 1) * lineHeight
   }
 
-  // Simple markdown formatter
+  // Simple markdown formatter with XSS protection
   function formatMarkdown(text: string): string {
     // This is a very simplified markdown parser
     // In a real app, you would use a proper markdown library
@@ -316,7 +317,15 @@ export default function CollaborationEditor() {
     // Replace newlines with breaks for remaining cases
     formatted = formatted.replace(/\n/g, "<br>")
 
-    return formatted
+    // Sanitize the HTML to prevent XSS attacks
+    // DOMPurify will remove any malicious scripts, event handlers, etc.
+    const sanitized = DOMPurify.sanitize(formatted, {
+      ALLOWED_TAGS: ['h1', 'h2', 'h3', 'p', 'strong', 'em', 'ul', 'li', 'br'],
+      ALLOWED_ATTR: [],
+      KEEP_CONTENT: true
+    })
+
+    return sanitized
   }
 
   return (

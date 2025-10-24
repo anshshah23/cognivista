@@ -2,9 +2,41 @@ import connect from "@/dbConfig/dbConfig";
 import { authenticateUser } from "@/middleware/authMiddleware";
 import Collaboration from "@/models/collaborationModel";
 import { NextResponse } from "next/server";
+import DOMPurify from "isomorphic-dompurify";
 
 // Connect to the database
 connect();
+
+// Input validation and sanitization
+function validateAndSanitizeInput(title, content) {
+  const errors = []
+  
+  // Validate title
+  if (title && typeof title !== 'string') {
+    errors.push('Title must be a string')
+  }
+  if (title && title.length > 200) {
+    errors.push('Title cannot exceed 200 characters')
+  }
+  
+  // Validate content
+  if (content && typeof content !== 'string') {
+    errors.push('Content must be a string')
+  }
+  if (content && content.length > 50000) {
+    errors.push('Content cannot exceed 50,000 characters')
+  }
+  
+  // Sanitize inputs to prevent XSS
+  const sanitizedTitle = title ? DOMPurify.sanitize(title, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }) : undefined
+  const sanitizedContent = content ? DOMPurify.sanitize(content, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }) : undefined
+  
+  return {
+    errors,
+    sanitizedTitle,
+    sanitizedContent
+  }
+}
 
 // Get a specific collaboration session
 export async function GET(request, context) {
@@ -58,6 +90,12 @@ export async function PUT(request, context) {
     const reqBody = await request.json();
     const { title, content } = reqBody;
 
+    // Validate and sanitize input
+    const validation = validateAndSanitizeInput(title, content)
+    if (validation.errors.length > 0) {
+      return NextResponse.json({ error: validation.errors.join(', ') }, { status: 400 })
+    }
+
     const session = await Collaboration.findOne({ sessionId });
 
     if (!session) {
@@ -71,8 +109,8 @@ export async function PUT(request, context) {
       return NextResponse.json({ error: "You don't have permission to update this session" }, { status: 403 });
     }
 
-    if (title !== undefined) session.title = title;
-    if (content !== undefined) session.content = content;
+    if (validation.sanitizedTitle !== undefined) session.title = validation.sanitizedTitle;
+    if (validation.sanitizedContent !== undefined) session.content = validation.sanitizedContent;
     session.lastActivity = new Date();
 
     await session.save();

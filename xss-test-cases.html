@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XSS Test Cases</title>
+</head>
+<body>
+    <h1>XSS Test Cases for Collaboration Editor</h1>
+    <p>These test cases can be used to verify that the XSS protection is working:</p>
+    
+    <h2>1. Script Tag Injection</h2>
+    <code>&lt;script&gt;alert('XSS')&lt;/script&gt;</code>
+    
+    <h2>2. Image Tag with onerror Event</h2>
+    <code>&lt;img src="x" onerror="alert('XSS')"&gt;</code>
+    
+    <h2>3. Iframe with JavaScript URL</h2>
+    <code>&lt;iframe src="javascript:alert('XSS')"&gt;&lt;/iframe&gt;</code>
+    
+    <h2>4. SVG with Script</h2>
+    <code>&lt;svg onload="alert('XSS')"&gt;&lt;/svg&gt;</code>
+    
+    <h2>5. Input with onfocus Event</h2>
+    <code>&lt;input onfocus="alert('XSS')" autofocus&gt;</code>
+    
+    <h2>6. Link with JavaScript URL</h2>
+    <code>&lt;a href="javascript:alert('XSS')"&gt;Click me&lt;/a&gt;</code>
+    
+    <h2>7. Style Tag with CSS Expression</h2>
+    <code>&lt;style&gt;body{background:expression(alert('XSS'))}&lt;/style&gt;</code>
+    
+    <h2>8. Div with onclick Event</h2>
+    <code>&lt;div onclick="alert('XSS')"&gt;Click me&lt;/div&gt;</code>
+    
+    <h2>9. Meta Tag with Refresh</h2>
+    <code>&lt;meta http-equiv="refresh" content="0;url=javascript:alert('XSS')"&gt;</code>
+    
+    <h2>10. Object Tag with Data URL</h2>
+    <code>&lt;object data="javascript:alert('XSS')"&gt;&lt;/object&gt;</code>
+    
+    <h2>Expected Behavior</h2>
+    <p>After implementing DOMPurify sanitization:</p>
+    <ul>
+        <li>All script tags should be completely removed</li>
+        <li>All event handlers (onerror, onload, onclick, etc.) should be stripped</li>
+        <li>JavaScript URLs should be blocked</li>
+        <li>Only safe HTML tags (h1, h2, h3, p, strong, em, ul, li, br) should be allowed</li>
+        <li>No attributes should be allowed except for the safe ones configured</li>
+    </ul>
+    
+    <h2>Testing Steps</h2>
+    <ol>
+        <li>Start the application</li>
+        <li>Navigate to the collaboration editor</li>
+        <li>Try pasting each test case into the document editor</li>
+        <li>Switch to the Preview tab</li>
+        <li>Verify that no JavaScript executes and no alerts appear</li>
+        <li>Check the browser's developer tools to ensure malicious code is stripped</li>
+    </ol>
+</body>
+</html>
