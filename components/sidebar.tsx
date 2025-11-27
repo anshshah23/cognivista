@@ -30,7 +30,6 @@ const navItems = [
 
 const userItems = [
   { name: "Profile", href: "/settings", icon: User },
-  { name: "Settings", href: "/settings", icon: Settings },
 ]
 
 export default function Sidebar() {
@@ -51,7 +50,12 @@ export default function Sidebar() {
   useEffect(() => {
     const handleResize = () => {
       if (!isMobile()) setIsCollapsed(false)
+      else setIsCollapsed(true) // Start collapsed on mobile
     }
+    
+    // Set initial state
+    handleResize()
+    
     window.addEventListener("resize", handleResize)
     return () => window.removeEventListener("resize", handleResize)
   }, [])
@@ -66,12 +70,27 @@ export default function Sidebar() {
   }
 
   return (
-    <motion.div
-      className={cn(
-        "flex flex-col h-screen border-r bg-background/80 backdrop-blur-sm z-10 transition-all duration-300",
-        isCollapsed ? "w-14" : "w-screen sm:w-56"
+    <>
+      {/* Mobile backdrop overlay */}
+      {!isCollapsed && isMobile() && (
+        <motion.div
+          className="fixed inset-0 bg-black/50 z-40 sm:hidden"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={() => setIsCollapsed(true)}
+        />
       )}
-    >
+      
+      <motion.div
+        className={cn(
+          "flex flex-col h-full border-r bg-background/80 backdrop-blur-sm transition-all duration-300 overflow-hidden",
+          isCollapsed ? "w-14" : "w-64 sm:w-56",
+          "fixed sm:relative z-50 sm:z-10",
+          isCollapsed ? "" : "sm:relative"
+        )}
+        style={{ height: '100vh', maxHeight: '100vh' }}
+      >
       {/* Header Section */}
       <div className="flex h-16 items-center border-b px-3 shrink-0">
         <Link href="/" className="flex items-center" onClick={handleNavClick}>
@@ -106,7 +125,7 @@ export default function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-2 py-4 overflow-hidden">
+      <nav className="flex-1 px-2 py-4 overflow-y-auto overflow-x-hidden min-h-0">
         <ul className="space-y-2">
           {navItems.map((item) => {
             const isActive = pathname === item.href
@@ -211,5 +230,6 @@ export default function Sidebar() {
         </DropdownMenu>
       </div>
     </motion.div>
+    </>
   )
 }
