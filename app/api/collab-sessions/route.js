@@ -2,7 +2,20 @@ import connect from "@/dbConfig/dbConfig"
 import { authenticateUser } from "@/middleware/authMiddleware"
 import Collaboration from "@/models/collaborationModel"
 import { NextResponse } from "next/server"
-import DOMPurify from "isomorphic-dompurify"
+
+// Simple HTML/XSS sanitization for server-side use
+function sanitizeString(str) {
+  if (!str || typeof str !== 'string') return ""
+  
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;')
+    .trim()
+}
 
 // Input validation and sanitization
 function validateAndSanitizeInput(title, content) {
@@ -22,8 +35,8 @@ function validateAndSanitizeInput(title, content) {
     errors.push('Content cannot exceed 50,000 characters')
   }
   
-  const sanitizedTitle = title ? DOMPurify.sanitize(title, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }) : ""
-  const sanitizedContent = content ? DOMPurify.sanitize(content, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }) : ""
+  const sanitizedTitle = title ? sanitizeString(title) : ""
+  const sanitizedContent = content ? sanitizeString(content) : ""
   
   return {
     errors,
