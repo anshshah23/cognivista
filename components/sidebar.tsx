@@ -30,7 +30,6 @@ const navItems = [
 
 const userItems = [
   { name: "Profile", href: "/settings", icon: User },
-  { name: "Settings", href: "/settings", icon: Settings },
 ]
 
 export default function Sidebar() {
@@ -38,9 +37,18 @@ export default function Sidebar() {
   const router = useRouter()
   const { user, logout } = useAuth()
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
 
-  // Detect if the screen is mobile
-  const isMobile = () => window.innerWidth <= 768
+  // Check if component is mounted (client-side)
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  // Detect if the screen is mobile (only after mounting)
+  const isMobile = () => {
+    if (!isMounted || typeof window === 'undefined') return false
+    return window.innerWidth <= 768
+  }
 
   // Collapse sidebar on mobile when a navigation item is clicked
   const handleNavClick = () => {
@@ -49,12 +57,19 @@ export default function Sidebar() {
 
   // Ensure proper behavior on window resize
   useEffect(() => {
+    if (!isMounted) return
+
     const handleResize = () => {
       if (!isMobile()) setIsCollapsed(false)
+      else setIsCollapsed(true) // Start collapsed on mobile
     }
+    
+    // Set initial state
+    handleResize()
+    
     window.addEventListener("resize", handleResize)
     return () => window.removeEventListener("resize", handleResize)
-  }, [])
+  }, [isMounted])
 
   const handleLogout = async () => {
     try {
@@ -65,13 +80,46 @@ export default function Sidebar() {
     }
   }
 
+  // Don't render until mounted to avoid hydration mismatch
+  if (!isMounted) {
+    return (
+      <div className="flex flex-col h-full border-r bg-background/80 backdrop-blur-sm w-64 sm:w-56 fixed sm:relative z-50 sm:z-10">
+        <div className="flex h-16 items-center border-b px-3 shrink-0">
+          <div className="relative h-8 w-8 overflow-hidden rounded-full bg-primary">
+            <div className="absolute inset-0 flex items-center justify-center text-white font-bold">
+              CV
+            </div>
+          </div>
+          <span className="ml-2 text-lg font-semibold gradient-text">
+            CogniVista
+          </span>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <motion.div
-      className={cn(
-        "flex flex-col h-screen border-r bg-background/80 backdrop-blur-sm z-10 transition-all duration-300",
-        isCollapsed ? "w-14" : "w-screen sm:w-56"
+    <>
+      {/* Mobile backdrop overlay */}
+      {!isCollapsed && isMobile() && (
+        <motion.div
+          className="fixed inset-0 bg-black/50 z-40 sm:hidden"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={() => setIsCollapsed(true)}
+        />
       )}
-    >
+      
+      <motion.div
+        className={cn(
+          "flex flex-col h-full border-r bg-background/80 backdrop-blur-sm transition-all duration-300 overflow-hidden",
+          isCollapsed ? "w-14" : "w-64 sm:w-56",
+          "fixed sm:relative z-50 sm:z-10",
+          isCollapsed ? "" : "sm:relative"
+        )}
+        style={{ height: '100vh', maxHeight: '100vh' }}
+      >
       {/* Header Section */}
       <div className="flex h-16 items-center border-b px-3 shrink-0">
         <Link href="/" className="flex items-center" onClick={handleNavClick}>
@@ -106,7 +154,7 @@ export default function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-2 py-4 overflow-hidden">
+      <nav className="flex-1 px-2 py-4 overflow-y-auto overflow-x-hidden min-h-0">
         <ul className="space-y-2">
           {navItems.map((item) => {
             const isActive = pathname === item.href
@@ -211,5 +259,6 @@ export default function Sidebar() {
         </DropdownMenu>
       </div>
     </motion.div>
+    </>
   )
 }
