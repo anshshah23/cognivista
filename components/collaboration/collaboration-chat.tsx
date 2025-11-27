@@ -31,37 +31,64 @@ interface Message {
 
 interface CollaborationChatProps {
   currentUser: User | null
-  collaborator: User
-  isCollaboratorConnected: boolean
   sessionId: string
+  documentContent?: string
+  sessionExists?: boolean
+  onDocumentUpdate?: (newContent: string) => void
 }
 
 export default function CollaborationChat({
   currentUser,
-  collaborator,
-  isCollaboratorConnected,
   sessionId,
+  documentContent = "",
+  sessionExists = false,
+  onDocumentUpdate,
 }: CollaborationChatProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [aiUsage, setAiUsage] = useState({ used: 0, remaining: 3, limit: 3 })
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
 
-  // Fetch messages when session ID changes
+  // Fetch initial data and setup polling
   useEffect(() => {
-    if (sessionId) {
+    if (sessionExists && sessionId && sessionId.startsWith('collab-')) {
       fetchMessages()
+      fetchAiUsage()
+
+      // Poll for new messages every 10 seconds
+      const pollInterval = setInterval(() => {
+        fetchMessages()
+      }, 10000)
+
+      return () => clearInterval(pollInterval)
     }
-  }, [sessionId])
+  }, [sessionId, sessionExists])
+
+  // Fetch AI usage limits
+  const fetchAiUsage = async () => {
+    try {
+      const response = await fetch(`/api/collaboration/sessions/${sessionId}/ai-helper`)
+      if (response.ok) {
+        const data = await response.json()
+        setAiUsage(data)
+      }
+    } catch (error) {
+      console.error("Error fetching AI usage:", error)
+    }
+  }
 
   // Fetch messages from the API
   const fetchMessages = async () => {
     try {
-      const response = await fetch(`/api/collaboration/${sessionId}/messages`)
+      const response = await fetch(`/api/collaboration/sessions/${sessionId}/messages`)
       if (response.ok) {
         const data = await response.json()
         setMessages(data.messages || [])
+      } else if (response.status === 404) {
+        // Session doesn't exist yet - user needs to save first
+        console.log("Session not found - save the document first")
       } else {
         console.error("Failed to fetch messages")
       }
@@ -70,43 +97,7 @@ export default function CollaborationChat({
     }
   }
 
-  // Simulate initial message from collaborator
-  useEffect(() => {
-    if (isCollaboratorConnected && messages.length === 0) {
-      const initialMessage: Message = {
-        id: `msg-${Date.now()}`,
-        userId: collaborator.id,
-        text: "Hi there! I'm ready to collaborate on this document.",
-        timestamp: new Date(),
-      }
 
-      setMessages((prev) => [...prev, initialMessage])
-
-      // Simulate collaborator messages
-      const messageInterval = setInterval(() => {
-        const randomMessages = [
-          "What do you think about this section?",
-          "I think we should add more details here.",
-          "Let me know if you want to change anything.",
-          "This looks good to me!",
-          "Should we add a conclusion?",
-        ]
-
-        const randomMessage = randomMessages[Math.floor(Math.random() * randomMessages.length)]
-
-        const newMessage: Message = {
-          id: `msg-${Date.now()}`,
-          userId: collaborator.id,
-          text: randomMessage,
-          timestamp: new Date(),
-        }
-
-        setMessages((prev) => [...prev, newMessage])
-      }, 45000) // Every 45 seconds
-
-      return () => clearInterval(messageInterval)
-    }
-  }, [isCollaboratorConnected, collaborator.id, messages.length])
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -118,34 +109,94 @@ export default function CollaborationChat({
 
     if (!newMessage.trim() || !currentUser) return
 
+    if (!sessionExists) {
+      toast({
+        title: "Session not saved",
+        description: "Please save your document first before sending messages.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsLoading(true)
 
     try {
-      // Send message to API
-      const response = await fetch(`/api/collaboration/${sessionId}/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          text: newMessage,
-        }),
-      })
+      // Check if message mentions @Helper
+      const isHelperRequest = newMessage.toLowerCase().includes("@helper")
 
-      if (response.ok) {
-        const data = await response.json()
-        // Add the message to the local state
-        setMessages((prev) => [...prev, data.chatMessage])
-        setNewMessage("")
-        analyticsTracker.recordAction()
+      if (isHelperRequest) {
+        // Check AI usage limit
+        if (aiUsage.remaining <= 0) {
+          toast({
+            title: "Daily limit reached",
+            description: "You've used all 3 AI assistance requests for today. Try again tomorrow.",
+            variant: "destructive",
+          })
+          setIsLoading(false)
+          return
+        }
+
+        // Get document content from parent (would need to pass this as prop)
+        // For now, we'll request AI help without document context
+        const response = await fetch(`/api/collaboration/sessions/${sessionId}/ai-helper`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            prompt: newMessage.replace(/@helper/gi, "").trim(),
+            documentContent: documentContent,
+          }),
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          
+          // If AI updated the document, refresh the content in the editor
+          if (data.documentUpdated && data.updatedContent && onDocumentUpdate) {
+            onDocumentUpdate(data.updatedContent)
+          }
+          
+          // Refresh messages to show AI response
+          await fetchMessages()
+          await fetchAiUsage()
+          setNewMessage("")
+          toast({
+            title: "AI Assistant",
+            description: `Response added to document. ${data.usage?.remaining || 0} requests remaining today.`,
+          })
+          analyticsTracker.recordAction()
+        } else {
+          const error = await response.json()
+          throw new Error(error.error || "Failed to get AI response")
+        }
       } else {
-        throw new Error("Failed to send message")
+        // Send regular message to API
+        const response = await fetch(`/api/collaboration/sessions/${sessionId}/messages`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            text: newMessage,
+          }),
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          // Add message to local state
+          setMessages((prev) => [...prev, data.chatMessage])
+          setNewMessage("")
+          analyticsTracker.recordAction()
+        } else {
+          throw new Error("Failed to send message")
+        }
       }
     } catch (error) {
       console.error("Error sending message:", error)
       toast({
         title: "Error",
-        description: "Failed to send message",
+        description: error instanceof Error ? error.message : "Failed to send message",
         variant: "destructive",
       })
     } finally {
@@ -161,21 +212,26 @@ export default function CollaborationChat({
     <Card className="w-full lg:w-80 bg-background/80 backdrop-blur-sm border">
       <CardContent className="p-4">
         <div className="flex flex-col h-[500px]">
-          <div className="text-lg font-semibold mb-2">Chat</div>
+          <div className="flex justify-between items-center mb-2">
+            <div className="text-lg font-semibold">Chat</div>
+            <div className="text-xs text-muted-foreground">
+              AI: {aiUsage.remaining}/{aiUsage.limit} left today
+            </div>
+          </div>
 
           <div className="flex-1 overflow-y-auto mb-4 space-y-4 pr-2">
             {messages.length === 0 ? (
               <div className="h-full flex items-center justify-center text-center text-muted-foreground p-4">
-                {isCollaboratorConnected
-                  ? "No messages yet. Start the conversation!"
-                  : "Waiting for collaborator to join..."}
+                {sessionExists ? 
+                  "No messages yet. Start the conversation!" : 
+                  "Save your document first to enable chat"}
               </div>
             ) : (
               <AnimatePresence initial={false}>
   {messages.map((message, index) => {
     const isCurrentUser = message.userId === currentUser?.id
-    const user = isCurrentUser ? currentUser : collaborator
-    const username = message.user?.username || user.name
+    const username = message.user?.username || currentUser?.name || 'Unknown'
+    const userColor = isCurrentUser ? currentUser?.color : '#10b981'
 
     return (
       <motion.div
@@ -190,9 +246,8 @@ export default function CollaborationChat({
           className={`flex ${isCurrentUser ? "flex-row-reverse" : "flex-row"} items-start gap-2 max-w-[80%]`}
         >
           <Avatar className="h-8 w-8">
-            <AvatarImage src={user.avatar} alt={username} />
-            <AvatarFallback style={{ backgroundColor: user.color }} className="text-white">
-              {username.substring(0, 2)}
+            <AvatarFallback style={{ backgroundColor: userColor }} className="text-white">
+              {username.substring(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div>
@@ -218,14 +273,14 @@ export default function CollaborationChat({
             <Input
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type a message..."
-              disabled={!isCollaboratorConnected || !currentUser}
+              placeholder={sessionExists ? "Type a message or @Helper for AI assistance..." : "Save document to enable chat..."}
+              disabled={!currentUser || !sessionExists}
               className="bg-background/80 backdrop-blur-sm border"
             />
             <Button
               type="submit"
               size="icon"
-              disabled={!isCollaboratorConnected || !newMessage.trim() || !currentUser || isLoading}
+              disabled={!newMessage.trim() || !currentUser || isLoading || !sessionExists}
               className="bg-gradient-to-r from-blue-500 to-purple-500 text-white"
             >
               <Send className="h-4 w-4" />

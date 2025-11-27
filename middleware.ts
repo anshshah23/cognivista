@@ -4,6 +4,11 @@ import type { NextRequest } from "next/server"
 export function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
 
+  // Skip middleware for API routes - they handle their own authentication
+  if (path.startsWith("/api/")) {
+    return NextResponse.next()
+  }
+
   // Define public paths that don't require authentication
   const isPublicPath = path === "/login" || path === "/signup" || path === "/forgot-password"
 

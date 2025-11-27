@@ -1,8 +1,6 @@
 "use client"
 
 import type React from "react"
-import DOMPurify from "dompurify"
-
 import { useState, useEffect, useRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -26,7 +24,7 @@ import {
 } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import analyticsTracker from "@/lib/analytics"
-import DOMPurify from "isomorphic-dompurify"
+import DOMPurify from "dompurify";
 
 interface Collaborator {
   _id: string
@@ -47,14 +45,9 @@ interface Session {
 export default function CollaborationEditor() {
   const [sessionId, setSessionId] = useState(`session-${Math.random().toString(36).substring(2, 9)}`)
   const [isConnected, setIsConnected] = useState(false)
-  const [isCollaboratorConnected, setIsCollaboratorConnected] = useState(false)
   const [documentContent, setDocumentContent] = useState("")
   const [documentTitle, setDocumentTitle] = useState("Untitled Document")
   const [cursorPosition, setCursorPosition] = useState<{ user: { _id: any; username: any } | null; position: number }>({
-    user: null,
-    position: 0,
-  })
-  const [collaboratorCursor, setCollaboratorCursor] = useState<{ user: { _id: string; username: string } | null; position: number }>({
     user: null,
     position: 0,
   })
@@ -62,10 +55,12 @@ export default function CollaborationEditor() {
   const [isSaving, setIsSaving] = useState(false)
   const [sessionsList, setSessionsList] = useState<Session[]>([])
   const [showSessionsDialog, setShowSessionsDialog] = useState(false)
+  const [showJoinDialog, setShowJoinDialog] = useState(false)
+  const [joinSessionId, setJoinSessionId] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [currentSession, setCurrentSession] = useState<Session | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const { toast } = useToast()
+  const { toast} = useToast()
   const { user } = useAuth()
 
   // Start analytics tracking
@@ -77,37 +72,44 @@ export default function CollaborationEditor() {
     }
   }, [])
 
-  // Simulate connection after a delay
+  // Set connection status and auto-create session
   useEffect(() => {
     setIsConnected(true)
+    
+    // Auto-create empty session on mount if user is logged in
+    if (user && !currentSession) {
+      const autoCreate = async () => {
+        try {
+          const response = await fetch("/api/collaboration/sessions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              title: "Untitled Document",
+              content: "",
+            }),
+          })
 
-    // Simulate collaborator joining after a delay
-    const timer = setTimeout(() => {
-      setIsCollaboratorConnected(true)
-
-      // Simulate collaborator cursor movements
-      const cursorInterval = setInterval(() => {
-        if (documentContent.length > 0) {
-          const randomPosition = Math.floor(Math.random() * documentContent.length)
-          setCollaboratorCursor((prev) => ({
-            ...prev,
-            user: { _id: "collaborator", username: "Jane Smith" },
-            position: randomPosition,
-          }))
+          if (response.ok) {
+            const data = await response.json()
+            setCurrentSession(data.session)
+            setSessionId(data.session.sessionId)
+          }
+        } catch (error) {
+          // Silently fail - user can save manually
+          console.log("Session will be created on first save")
         }
-      }, 5000)
-
-      return () => clearInterval(cursorInterval)
-    }, 3000)
-
-    return () => clearTimeout(timer)
-  }, [documentContent])
+      }
+      autoCreate()
+    }
+  }, [user])
 
   // Load sessions list
   const loadSessions = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch("/api/collaboration")
+      const response = await fetch("/api/collaboration/sessions")
       if (response.ok) {
         const data = await response.json()
         setSessionsList(data.sessions)
@@ -130,7 +132,7 @@ export default function CollaborationEditor() {
   const loadSession = async (sessionId: string) => {
     setIsLoading(true)
     try {
-      const response = await fetch(`/api/collaboration/${sessionId}`)
+      const response = await fetch(`/api/collaboration/sessions/${sessionId}`)
       if (response.ok) {
         const data = await response.json()
         setCurrentSession(data.session)
@@ -142,6 +144,12 @@ export default function CollaborationEditor() {
         toast({
           title: "Success",
           description: "Collaboration session loaded",
+        })
+      } else if (response.status === 404) {
+        toast({
+          title: "Session Not Found",
+          description: "This session doesn't exist. Please create a new session first.",
+          variant: "destructive",
         })
       } else {
         throw new Error("Failed to load session")
@@ -162,7 +170,7 @@ export default function CollaborationEditor() {
   const createSession = async () => {
     setIsSaving(true)
     try {
-      const response = await fetch("/api/collaboration", {
+      const response = await fetch("/api/collaboration/sessions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -183,13 +191,15 @@ export default function CollaborationEditor() {
           description: "Collaboration session created",
         })
       } else {
-        throw new Error("Failed to create session")
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
+        console.error("API Error:", response.status, errorData)
+        throw new Error(errorData.error || `Server returned ${response.status}`)
       }
     } catch (error) {
       console.error("Error creating session:", error)
       toast({
         title: "Error",
-        description: "Failed to create collaboration session",
+        description: error instanceof Error ? error.message : "Failed to create collaboration session",
         variant: "destructive",
       })
     } finally {
@@ -203,7 +213,7 @@ export default function CollaborationEditor() {
 
     setIsSaving(true)
     try {
-      const response = await fetch(`/api/collaboration/${sessionId}`, {
+      const response = await fetch(`/api/collaboration/sessions/${sessionId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -242,6 +252,58 @@ export default function CollaborationEditor() {
       await createSession()
     }
     analyticsTracker.recordAction()
+  }
+
+  // Join an existing session
+  const joinSession = async () => {
+    if (!joinSessionId.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a session ID",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const response = await fetch(`/api/collaboration/sessions/${joinSessionId}/join`, {
+        method: "POST",
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        await loadSession(joinSessionId)
+        setShowJoinDialog(false)
+        setJoinSessionId("")
+        
+        toast({
+          title: "Success",
+          description: `Joined collaboration session as ${data.role}`,
+        })
+      } else {
+        const error = await response.json()
+        throw new Error(error.error || "Failed to join session")
+      }
+    } catch (error) {
+      console.error("Error joining session:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to join collaboration session",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Handle AI document updates
+  const handleDocumentUpdate = (newContent: string) => {
+    setDocumentContent(newContent)
+    toast({
+      title: "Document Updated",
+      description: "AI helper has added content to your document!",
+    })
   }
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -327,7 +389,7 @@ export default function CollaborationEditor() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col md:flex-row justify-between gap-4">
+      <div className="flex flex-col lg:flex-row justify-between gap-4">
         <div>
           <motion.div
             className="flex items-center gap-2"
@@ -351,7 +413,7 @@ export default function CollaborationEditor() {
         </div>
 
         <motion.div
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 flex-wrap"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
@@ -363,6 +425,37 @@ export default function CollaborationEditor() {
               {isCopied ? "Copied" : "Copy"}
             </Button>
           </div>
+
+          <Dialog open={showJoinDialog} onOpenChange={setShowJoinDialog}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="bg-background/80 backdrop-blur-sm border">
+                <Users className="h-4 w-4 mr-2" />
+                Join
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Join Collaboration Session</DialogTitle>
+                <DialogDescription>Enter the session ID to join an existing collaboration</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <Input
+                  value={joinSessionId}
+                  onChange={(e) => setJoinSessionId(e.target.value)}
+                  placeholder="Enter session ID (e.g., collab-xxx)"
+                  className="w-full"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      joinSession()
+                    }
+                  }}
+                />
+                <Button onClick={joinSession} disabled={isLoading || !joinSessionId.trim()} className="w-full">
+                  {isLoading ? "Joining..." : "Join Session"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           <Dialog
             open={showSessionsDialog}
@@ -510,13 +603,12 @@ export default function CollaborationEditor() {
                         <User className="h-3 w-3" />
                         {isConnected ? "Connected" : "Connecting..."}
                       </Badge>
-                      <Badge
-                        variant={isCollaboratorConnected ? "default" : "secondary"}
-                        className="flex items-center gap-1"
-                      >
-                        <Users className="h-3 w-3" />
-                        {isCollaboratorConnected ? "Collaborator Online" : "Waiting for collaborator..."}
-                      </Badge>
+                      {currentSession && currentSession.participants.length > 0 && (
+                        <Badge variant="default" className="flex items-center gap-1">
+                          <Users className="h-3 w-3" />
+                          {currentSession.participants.length} Participant{currentSession.participants.length !== 1 ? 's' : ''}
+                        </Badge>
+                      )}
                     </div>
                   </div>
 
@@ -529,27 +621,20 @@ export default function CollaborationEditor() {
                       placeholder="Start typing your document here..."
                       className="min-h-[400px] resize-none font-mono bg-background/80 backdrop-blur-sm"
                     />
-
-                    {isCollaboratorConnected && documentContent && collaboratorCursor.user && (
-                      <div
-                        className="absolute w-0.5 h-5 animate-pulse"
-                        style={{
-                          backgroundColor: "#10b981",
-                          left: `${getPositionOffset(documentContent, collaboratorCursor.position)}px`,
-                          top: `${getPositionTop(documentContent, collaboratorCursor.position)}px`,
-                        }}
-                      />
-                    )}
                   </div>
 
-                  {isCollaboratorConnected && (
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-6 w-6">
-                        <AvatarFallback className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
-                          JS
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm">Jane Smith is editing</span>
+                  {currentSession && currentSession.participants.length > 0 && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {currentSession.participants.map((participant) => (
+                        <div key={participant._id} className="flex items-center gap-2">
+                          <Avatar className="h-6 w-6">
+                            <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white">
+                              {participant.username.substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm">{participant.username}</span>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </TabsContent>
@@ -578,9 +663,10 @@ export default function CollaborationEditor() {
           {user && (
             <CollaborationChat
               currentUser={{ id: user.id, name: user.username, avatar: "/placeholder.svg", color: "#4f46e5" }}
-              collaborator={{ id: "user2", name: "Jane Smith", avatar: "/placeholder.svg", color: "#10b981" }}
-              isCollaboratorConnected={isCollaboratorConnected}
               sessionId={sessionId}
+              documentContent={documentContent}
+              sessionExists={!!currentSession}
+              onDocumentUpdate={handleDocumentUpdate}
             />
           )}
         </motion.div>
