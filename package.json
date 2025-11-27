@@ -1,6 +1,6 @@
 {
-  "name": "my-v0-project",
-  "version": "0.1.0",
+  "name": "cognivista-ai",
+  "version": "0.1.2",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -40,7 +40,6 @@
     "@radix-ui/react-tooltip": "^1.1.6",
     "@react-three/drei": "^10.0.5",
     "@react-three/fiber": "^9.1.0",
-    "@types/dompurify": "^3.2.0",
     "autoprefixer": "^10.4.20",
     "axios": "^1.8.4",
     "bcryptjs": "latest",
@@ -54,7 +53,6 @@
     "formidable": "^3.5.2",
     "framer-motion": "^12.6.2",
     "input-otp": "1.4.1",
-    "isomorphic-dompurify": "^2.33.0",
     "jsonwebtoken": "latest",
     "lucide-react": "^0.454.0",
     "mongoose": "latest",
