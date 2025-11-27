@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, Clock, Calendar, Play, Edit, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { useAuth } from "@/lib/authContext"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,6 +46,7 @@ export default function QuizList() {
   const [quizzes, setQuizzes] = useState<Quiz[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const { toast } = useToast()
+  const { user } = useAuth()
 
   // Fetch quizzes on component mount
   useEffect(() => {
@@ -237,40 +239,44 @@ export default function QuizList() {
                     <Button
                       variant="default"
                       size="sm"
-                      className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white"
+                      className={`${user && quiz.user._id === user._id ? "flex-1" : "w-full"} bg-gradient-to-r from-blue-500 to-purple-500 text-white`}
                       onClick={() => startQuiz(quiz)}
                     >
                       <Play className="h-4 w-4 mr-1" />
                       Start
                     </Button>
-                    <Button variant="outline" size="sm" className="flex-1 bg-background/80 backdrop-blur-sm">
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="icon" className="bg-background/80 backdrop-blur-sm">
-                          <Trash2 className="h-4 w-4" />
+                    {user && (user._id === quiz.user._id || user.isAdmin) && (
+                      <>
+                        <Button variant="outline" size="sm" className="flex-1 bg-background/80 backdrop-blur-sm">
+                          <Edit className="h-4 w-4 mr-1" />
+                          Edit
                         </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent className="bg-background/95 backdrop-blur-sm border">
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Quiz</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete "{quiz.title}"? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel className="bg-background/80 backdrop-blur-sm">Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => deleteQuiz(quiz._id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline" size="icon" className="bg-background/80 backdrop-blur-sm">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="bg-background/95 backdrop-blur-sm border">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Quiz</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete "{quiz.title}"? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel className="bg-background/80 backdrop-blur-sm">Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteQuiz(quiz._id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>

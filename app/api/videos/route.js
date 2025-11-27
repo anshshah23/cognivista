@@ -35,9 +35,15 @@ export async function GET(request) {
       ]
     }
 
-    const videos = await Video.find(query).populate("user", "username").sort({ createdAt: -1 })
+    const videos = await Video.find(query)
+      .populate("user", "username email")
+      .sort({ createdAt: -1 })
+      .lean()
 
-    return NextResponse.json({ videos })
+    // Filter out videos with null users to prevent errors
+    const validVideos = videos.filter(video => video.user !== null)
+
+    return NextResponse.json({ videos: validVideos })
   } catch (error) {
     console.error("Videos Error:", error)
     return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 })

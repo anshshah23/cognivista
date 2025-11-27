@@ -45,6 +45,11 @@ const quizSchema = new mongoose.Schema(
       type: String,
       default: "General",
     },
+    difficulty: {
+      type: String,
+      enum: ["easy", "medium", "hard"],
+      default: "medium",
+    },
     timeLimit: {
       type: Number,
       default: 0, // 0 means no time limit

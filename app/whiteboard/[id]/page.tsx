@@ -22,15 +22,16 @@ async function getWhiteboard(id: string): Promise<WhiteboardData | null> {
     }
 }
 
-export default async function WhiteboardPage({ params }: { params: { id: string } }) {
-  console.log("Received params:", params); // Debugging
+export default async function WhiteboardPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  console.log("Received params:", resolvedParams); // Debugging
 
-  if (!params || !params.id) {
+  if (!resolvedParams || !resolvedParams.id) {
     console.error("Whiteboard ID is missing from params.");
     notFound();
   }
 
-  const { id } = params;
+  const { id } = resolvedParams;
   const data = await getWhiteboard(id);
 
   if (!data || !data.whiteboard) {

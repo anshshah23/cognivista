@@ -59,6 +59,22 @@ export async function POST(request) {
       return NextResponse.json({ error: "Whiteboard content is required" }, { status: 400 })
     }
 
+    // Check cooldown period (1 minute) - check last whiteboard created by user
+    const lastWhiteboard = await Whiteboard.findOne({ user: user._id }).sort({ createdAt: -1 })
+    
+    if (lastWhiteboard) {
+      const now = new Date()
+      const lastCreated = new Date(lastWhiteboard.createdAt)
+      const timeDiff = (now.getTime() - lastCreated.getTime()) / 1000 // in seconds
+      
+      if (timeDiff < 60) {
+        const remainingTime = Math.ceil(60 - timeDiff)
+        return NextResponse.json({ 
+          error: `Please wait ${remainingTime} seconds before creating another whiteboard` 
+        }, { status: 429 })
+      }
+    }
+
     const newWhiteboard = new Whiteboard({
       title: title || "Untitled Whiteboard",
       content,
