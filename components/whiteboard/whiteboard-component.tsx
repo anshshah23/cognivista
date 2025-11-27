@@ -481,13 +481,20 @@ export default function WhiteboardComponent ({
           router.push(`/whiteboard/${data.whiteboard._id}`)
         }
       } else {
-        throw new Error('Failed to save whiteboard')
+        const errorData = await response.json()
+        
+        // Handle cooldown error (429)
+        if (response.status === 429) {
+          throw new Error(errorData.error || 'Please wait before saving again')
+        }
+        
+        throw new Error(errorData.error || 'Failed to save whiteboard')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving whiteboard:', error)
       toast({
         title: 'Error',
-        description: 'Failed to save whiteboard. Please try again.',
+        description: error.message || 'Failed to save whiteboard. Please try again.',
         variant: 'destructive'
       })
     } finally {

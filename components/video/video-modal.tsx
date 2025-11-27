@@ -83,7 +83,7 @@ export default function VideoModal({ video, isOpen, onClose }: VideoModalProps) 
         <DialogHeader>
           <DialogTitle>{video.title}</DialogTitle>
           <DialogDescription>
-            Uploaded by {video.user.username} on {new Date(video.createdAt).toLocaleDateString()}
+            Uploaded by {video.user?.username || 'Unknown User'} on {new Date(video.createdAt).toLocaleDateString()}
           </DialogDescription>
         </DialogHeader>
 

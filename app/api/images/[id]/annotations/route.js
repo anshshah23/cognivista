@@ -16,7 +16,7 @@ export async function POST(request, { params }) {
     }
 
     const user = auth.user
-    const imageId = params.id
+    const { id: imageId } = await params
     const reqBody = await request.json()
     const { x, y, text, color } = reqBody
 
@@ -65,7 +65,7 @@ export async function PUT(request, { params }) {
     }
 
     const user = auth.user
-    const imageId = params.id
+    const { id: imageId } = await params
     const reqBody = await request.json()
     const { annotations } = reqBody
 

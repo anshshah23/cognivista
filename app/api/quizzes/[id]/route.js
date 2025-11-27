@@ -16,7 +16,7 @@ export async function GET(request, { params }) {
     }
 
     const user = auth.user
-    const quizId = params.id
+    const { id: quizId } = await params
 
     if (!mongoose.Types.ObjectId.isValid(quizId)) {
       return NextResponse.json({ error: "Invalid quiz ID" }, { status: 400 })
@@ -33,13 +33,17 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "You don't have permission to view this quiz" }, { status: 403 })
     }
 
-    // If user is not the owner, hide correct answers
+    // If user is not the owner, hide correct answers but keep structure
     if (quiz.user.toString() !== user._id.toString()) {
       const quizWithoutAnswers = quiz.toObject()
-      quizWithoutAnswers.questions = quiz.questions.map((q) => ({
-        ...q.toObject(),
-        correctAnswers: [],
-      }))
+      quizWithoutAnswers.questions = quiz.questions.map((q) => {
+        const questionObj = q.toObject()
+        return {
+          ...questionObj,
+          _id: q._id,
+          correctAnswers: [], // Hide correct answers from non-owners
+        }
+      })
       return NextResponse.json({ quiz: quizWithoutAnswers })
     }
 
@@ -59,7 +63,7 @@ export async function PUT(request, { params }) {
     }
 
     const user = auth.user
-    const quizId = params.id
+    const { id: quizId } = await params
     const reqBody = await request.json()
 
     if (!mongoose.Types.ObjectId.isValid(quizId)) {
@@ -131,7 +135,7 @@ export async function DELETE(request, { params }) {
     }
 
     const user = auth.user
-    const quizId = params.id
+    const { id: quizId } = await params
 
     if (!mongoose.Types.ObjectId.isValid(quizId)) {
       return NextResponse.json({ error: "Invalid quiz ID" }, { status: 400 })

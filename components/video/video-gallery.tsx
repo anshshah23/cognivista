@@ -191,7 +191,7 @@ export default function VideoGallery() {
                   <h3 className="font-semibold truncate">{video.title}</h3>
                   <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{video.description}</p>
                   <div className="flex items-center text-xs text-muted-foreground mt-2">
-                    <span>{video.user.username}</span>
+                    <span>{video.user?.username || 'Unknown User'}</span>
                     <span className="mx-1">•</span>
                     <span>{new Date(video.createdAt).toLocaleDateString()}</span>
                     <span className="mx-1">•</span>

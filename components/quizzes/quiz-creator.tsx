@@ -42,6 +42,7 @@ export default function QuizCreator () {
     title: '',
     description: '',
     subject: '',
+    difficulty: 'medium',
     timeLimit: 0,
     isPublic: true
   })
@@ -82,12 +83,16 @@ export default function QuizCreator () {
     setIsGenerating(true)
 
     try {
+      // Extract number of questions from prompt if specified
+      const numMatch = generationPrompt.match(/(\d+)\s*questions?/i)
+      const numQuestions = numMatch ? parseInt(numMatch[1]) : 5
+
       const response = await fetch('/api/quizzes/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: generationPrompt,
-          numQuestions: 5,
+          numQuestions: numQuestions,
           subject: quizData.subject
         })
       })
@@ -159,6 +164,7 @@ export default function QuizCreator () {
         title: '',
         description: '',
         subject: '',
+        difficulty: 'medium',
         timeLimit: 0,
         isPublic: true
       })
@@ -344,6 +350,26 @@ export default function QuizCreator () {
             </div>
 
             <div className='space-y-2'>
+              <Label htmlFor='difficulty'>Difficulty Level</Label>
+              <Select
+                value={quizData.difficulty}
+                onValueChange={(value) => setQuizData(prev => ({ ...prev, difficulty: value }))}
+              >
+                <SelectTrigger
+                  id='difficulty'
+                  className='bg-background/80 backdrop-blur-sm border'
+                >
+                  <SelectValue placeholder='Select difficulty' />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='easy'>Easy</SelectItem>
+                  <SelectItem value='medium'>Medium</SelectItem>
+                  <SelectItem value='hard'>Hard</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className='space-y-2'>
               <Label htmlFor='description'>Description</Label>
               <Textarea
                 id='description'
@@ -455,7 +481,6 @@ export default function QuizCreator () {
                           variant='outline'
                           size='sm'
                           onClick={addOption}
-                          disabled={currentQuestion.options.length >= 6}
                           className='bg-background/80 backdrop-blur-sm border'
                         >
                           <Plus className='h-4 w-4 mr-1' />
@@ -567,13 +592,13 @@ export default function QuizCreator () {
                 <div className='space-y-4'>
                   <div className='space-y-2'>
                     <Label htmlFor='ai-prompt'>
-                      Describe the quiz you want to create
+                      Describe the quiz you want to create (specify number of questions in your prompt)
                     </Label>
                     <Textarea
                       id='ai-prompt'
                       value={generationPrompt}
                       onChange={e => setGenerationPrompt(e.target.value)}
-                      placeholder='e.g., Create a 5-question quiz about the solar system for middle school students'
+                      placeholder='e.g., Create a 10-question quiz about the solar system for middle school students'
                       className='bg-background/80 backdrop-blur-sm border'
                       rows={3}
                     />

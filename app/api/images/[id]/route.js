@@ -10,13 +10,14 @@ connect()
 // Get a specific image
 export async function GET(request, { params }) {
   try {
+    const resolvedParams = await params;
     const auth = await authenticateUser(request)
     if (auth.error) {
       return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
     const user = auth.user
-    const imageId = params.id
+    const imageId = resolvedParams.id
 
     if (!mongoose.Types.ObjectId.isValid(imageId)) {
       return NextResponse.json({ error: "Invalid image ID" }, { status: 400 })
@@ -45,13 +46,14 @@ export async function GET(request, { params }) {
 // Update an image
 export async function PUT(request, { params }) {
   try {
+    const resolvedParams = await params;
     const auth = await authenticateUser(request)
     if (auth.error) {
       return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
     const user = auth.user
-    const imageId = params.id
+    const imageId = resolvedParams.id
     const reqBody = await request.json()
 
     if (!mongoose.Types.ObjectId.isValid(imageId)) {
@@ -93,13 +95,14 @@ export async function PUT(request, { params }) {
 // Delete an image
 export async function DELETE(request, { params }) {
   try {
+    const resolvedParams = await params;
     const auth = await authenticateUser(request)
     if (auth.error) {
       return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
     const user = auth.user
-    const imageId = params.id
+    const imageId = resolvedParams.id
 
     if (!mongoose.Types.ObjectId.isValid(imageId)) {
       return NextResponse.json({ error: "Invalid image ID" }, { status: 400 })
@@ -111,9 +114,9 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: "Image not found" }, { status: 404 })
     }
 
-    // Check if user owns this image
-    if (image.user.toString() !== user._id.toString() && !user.isAdmin) {
-      return NextResponse.json({ error: "You don't have permission to delete this image" }, { status: 403 })
+    // Only the author can delete this image
+    if (image.user.toString() !== user._id.toString()) {
+      return NextResponse.json({ error: "Only the author can delete this image" }, { status: 403 })
     }
 
     await Image.findByIdAndDelete(imageId)

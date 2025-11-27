@@ -161,23 +161,23 @@ export default function Sidebar() {
               variant="ghost"
               className={`w-full flex ${isCollapsed ? "justify-center" : "justify-start"} items-center rounded-lg hover:bg-accent/50`}
             >
-              <Avatar className="h-8 w-8 border-2 border-primary">
+              <Avatar className="h-8 w-8 border-2 border-primary shrink-0">
                 <AvatarImage src="/placeholder.svg" />
                 <AvatarFallback className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white">
-                  {user?.username?.substring(0, 2) || "U"}
+                  {user?.username?.substring(0, 2).toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
 
               {!isCollapsed && (
                 <motion.div
-                  className="ml-3 flex flex-col items-start"
+                  className="ml-3 flex flex-col items-start min-w-0 flex-1"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <span className="text-sm font-medium">{user?.username || "User"}</span>
-                  <span className="text-xs text-muted-foreground">{user?.email || "user@example.com"}</span>
+                  <span className="text-sm font-medium truncate w-full text-left">{user?.username || "User"}</span>
+                  <span className="text-xs text-muted-foreground truncate w-full text-left">{user?.email || "user@example.com"}</span>
                 </motion.div>
               )}
             </Button>

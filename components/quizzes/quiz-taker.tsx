@@ -13,12 +13,12 @@ import { motion, AnimatePresence } from "framer-motion"
 import analyticsTracker from "@/lib/analytics"
 
 interface Option {
-  id: string
+  _id: string
   text: string
 }
 
 interface Question {
-  id: string
+  _id: string
   text: string
   type: "multiple-choice" | "true-false" | "multiple-select"
   options: Option[]
@@ -95,23 +95,23 @@ export default function QuizTaker({ quiz, isOpen, onClose }: QuizTakerProps) {
   const handleSingleAnswerChange = (value: string) => {
     setAnswers((prev) => ({
       ...prev,
-      [currentQuestion.id]: [value],
+      [currentQuestion._id]: [value],
     }))
   }
 
   const handleMultipleAnswerChange = (optionId: string, checked: boolean) => {
     setAnswers((prev) => {
-      const currentAnswers = prev[currentQuestion.id] || []
+      const currentAnswers = prev[currentQuestion._id] || []
 
       if (checked) {
         return {
           ...prev,
-          [currentQuestion.id]: [...currentAnswers, optionId],
+          [currentQuestion._id]: [...currentAnswers, optionId],
         }
       } else {
         return {
           ...prev,
-          [currentQuestion.id]: currentAnswers.filter((id) => id !== optionId),
+          [currentQuestion._id]: currentAnswers.filter((id) => id !== optionId),
         }
       }
     })
@@ -193,7 +193,7 @@ export default function QuizTaker({ quiz, isOpen, onClose }: QuizTakerProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl bg-background/95 backdrop-blur-sm border">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-background/95 backdrop-blur-sm border">
         {!quizCompleted ? (
           <>
             <DialogHeader>
@@ -228,27 +228,27 @@ export default function QuizTaker({ quiz, isOpen, onClose }: QuizTakerProps) {
 
                 {currentQuestion.type === "multiple-choice" || currentQuestion.type === "true-false" ? (
                   <RadioGroup
-                    value={answers[currentQuestion.id]?.[0] || ""}
+                    value={answers[currentQuestion._id]?.[0] || ""}
                     onValueChange={handleSingleAnswerChange}
                     className="space-y-2"
                   >
                     {currentQuestion.options.map((option) => (
-                      <div key={option.id} className="flex items-center space-x-2">
-                        <RadioGroupItem value={option.id} id={option.id} />
-                        <Label htmlFor={option.id}>{option.text}</Label>
+                      <div key={option._id} className="flex items-center space-x-2">
+                        <RadioGroupItem value={option._id} id={option._id} />
+                        <Label htmlFor={option._id}>{option.text}</Label>
                       </div>
                     ))}
                   </RadioGroup>
                 ) : (
                   <div className="space-y-2">
                     {currentQuestion.options.map((option) => (
-                      <div key={option.id} className="flex items-center space-x-2">
+                      <div key={option._id} className="flex items-center space-x-2">
                         <Checkbox
-                          id={option.id}
-                          checked={(answers[currentQuestion.id] || []).includes(option.id)}
-                          onCheckedChange={(checked) => handleMultipleAnswerChange(option.id, checked as boolean)}
+                          id={option._id}
+                          checked={(answers[currentQuestion._id] || []).includes(option._id)}
+                          onCheckedChange={(checked) => handleMultipleAnswerChange(option._id, checked as boolean)}
                         />
-                        <Label htmlFor={option.id}>{option.text}</Label>
+                        <Label htmlFor={option._id}>{option.text}</Label>
                       </div>
                     ))}
                   </div>
@@ -285,114 +285,129 @@ export default function QuizTaker({ quiz, isOpen, onClose }: QuizTakerProps) {
               </Button>
             </div>
           </>
+          // ...existing code...
         ) : (
-          <>
-            <DialogHeader>
+          <div className="flex flex-col h-full">
+            <DialogHeader className="flex-shrink-0">
               <DialogTitle>Quiz Results</DialogTitle>
               <DialogDescription>You have completed the quiz!</DialogDescription>
             </DialogHeader>
 
-            <div className="flex flex-col items-center justify-center py-6">
-              <motion.div
-                className="text-center mb-4"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.5 }}
-              >
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-2xl font-bold">{score.percentage}%</span>
+            <div className="flex-1 overflow-y-auto py-3">
+              <div className="flex flex-col items-center justify-start">
+                <motion.div
+                  className="text-center mb-6"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <div className="relative mx-auto w-24 h-24">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-xl font-bold">{score.percentage}%</span>
+                    </div>
+                    <svg className="w-24 h-24" viewBox="0 0 100 100">
+                      <circle
+                        className="text-muted stroke-current"
+                        strokeWidth="10"
+                        fill="transparent"
+                        r="40"
+                        cx="50"
+                        cy="50"
+                      />
+                      <circle
+                        className="text-primary stroke-current"
+                        strokeWidth="10"
+                        strokeLinecap="round"
+                        fill="transparent"
+                        r="40"
+                        cx="50"
+                        cy="50"
+                        strokeDasharray={`${2 * Math.PI * 40}`}
+                        strokeDashoffset={`${2 * Math.PI * 40 * (1 - score.percentage / 100)}`}
+                        transform="rotate(-90 50 50)"
+                      />
+                    </svg>
                   </div>
-                  <svg className="w-32 h-32" viewBox="0 0 100 100">
-                    <circle
-                      className="text-muted stroke-current"
-                      strokeWidth="10"
-                      fill="transparent"
-                      r="40"
-                      cx="50"
-                      cy="50"
-                    />
-                    <circle
-                      className="text-primary stroke-current"
-                      strokeWidth="10"
-                      strokeLinecap="round"
-                      fill="transparent"
-                      r="40"
-                      cx="50"
-                      cy="50"
-                      strokeDasharray={`${2 * Math.PI * 40}`}
-                      strokeDashoffset={`${2 * Math.PI * 40 * (1 - score.percentage / 100)}`}
-                      transform="rotate(-90 50 50)"
-                    />
-                  </svg>
-                </div>
-                <h2 className="text-2xl font-bold mt-2">
-                  {score.correct} / {score.total} Correct
-                </h2>
-                <p className="text-muted-foreground">
-                  {score.percentage >= 80
-                    ? "Excellent work!"
-                    : score.percentage >= 60
-                      ? "Good job!"
-                      : "Keep practicing!"}
-                </p>
-              </motion.div>
+                  <h2 className="text-lg font-bold mt-4">
+                    {score.correct} / {score.total} Correct
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    {score.percentage >= 80
+                      ? "Excellent work!"
+                      : score.percentage >= 60
+                        ? "Good job!"
+                        : "Keep practicing!"}
+                  </p>
+                </motion.div>
 
-              <div className="w-full max-w-md space-y-4">
-                {result &&
-                  result.answers &&
-                  result.answers.map((answer: any, index: number) => {
-                    const question = quiz.questions.find((q) => q.id === answer.questionId)
-                    if (!question) return null
+                <div className="w-full max-w-md space-y-4 px-2">
+                  {result &&
+                    result.answers &&
+                    result.answers.map((answer: any, index: number) => {
+                      const question = quiz.questions.find((q) => q._id === answer.questionId)
+                      if (!question) return null
 
-                    return (
-                      <motion.div
-                        key={answer.questionId}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.1 }}
-                        className={`p-3 rounded-md ${
-                          answer.isCorrect
-                            ? "bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900"
-                            : "bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900"
-                        }`}
-                      >
-                        <p className="font-medium">
-                          {index + 1}. {question.text}
-                        </p>
-                        <div className="mt-2 space-y-1 text-sm">
-                          {question.options.map((option) => {
-                            const isSelected = answer.selectedOptions.includes(option.id)
-                            const isCorrect = question.correctAnswers.includes(option.id)
+                      return (
+                        <motion.div
+                          key={answer.questionId}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.1 }}
+                          className={`p-3 rounded-md ${answer.isCorrect
+                              ? "bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900"
+                              : "bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900"
+                            }`}
+                        >
+                          <p className="font-medium">
+                            {index + 1}. {question.text}
+                          </p>
+                          <div className="mt-2 space-y-1 text-sm">
+                            {question.options.map((option) => {
+                              const isSelected = answer.selectedOptions.includes(option._id)
+                              const isCorrectAnswer = answer.correctAnswers.includes(option._id)
 
-                            return (
-                              <div key={option.id} className="flex items-start">
-                                <div className="mt-0.5 mr-2 w-4 h-4 flex-shrink-0">
-                                  {isSelected && isCorrect && <CheckCircle2 className="w-4 h-4 text-green-500" />}
-                                  {isSelected && !isCorrect && <div className="w-4 h-4 rounded-full bg-red-500" />}
-                                  {!isSelected && isCorrect && (
-                                    <div className="w-4 h-4 rounded-full border-2 border-green-500" />
-                                  )}
+                              return (
+                                <div key={`${answer.questionId}-${option._id}`} className="flex items-start">
+                                  <div className="mt-0.5 mr-2 w-4 h-4 flex-shrink-0">
+                                    {isSelected && isCorrectAnswer && <CheckCircle2 className="w-4 h-4 text-green-500" />}
+                                    {isSelected && !isCorrectAnswer && (
+                                      <div className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
+                                        <span className="text-white text-xs">✕</span>
+                                      </div>
+                                    )}
+                                    {!isSelected && isCorrectAnswer && (
+                                      <CheckCircle2 className="w-4 h-4 text-green-500 opacity-50" />
+                                    )}
+                                  </div>
+                                  <span
+                                    className={`
+                                      ${isCorrectAnswer ? "font-medium text-green-600 dark:text-green-400" : ""}
+                                      ${isSelected && !isCorrectAnswer ? "line-through text-red-600 dark:text-red-400" : ""}
+                                    `}
+                                  >
+                                    {option.text}
+                                    {isCorrectAnswer && " (Correct)"}
+                                    {isSelected && !isCorrectAnswer && " (Your answer)"}
+                                  </span>
                                 </div>
-                                <span className={`${isCorrect ? "font-medium" : ""}`}>{option.text}</span>
-                              </div>
-                            )
-                          })}
-                        </div>
-                        <p className="text-sm mt-1">
-                          {answer.isCorrect ? (
-                            <span className="text-green-600 dark:text-green-400">Correct</span>
-                          ) : (
-                            <span className="text-red-600 dark:text-red-400">Incorrect</span>
-                          )}
-                        </p>
-                      </motion.div>
-                    )
-                  })}
+                              )
+                            })}
+                          </div>
+                          <p className="text-sm mt-1">
+                            {answer.isCorrect ? (
+                              <span className="text-green-600 dark:text-green-400">Correct</span>
+                            ) : (
+                              <span className="text-red-600 dark:text-red-400">Incorrect</span>
+                            )}
+                          </p>
+                        </motion.div>
+                      )
+                    })}
+                </div>
               </div>
             </div>
 
-            <div className="flex justify-between">
+            <div className="flex justify-between flex-shrink-0 pt-4 border-t">
               <Button variant="outline" onClick={onClose} className="bg-background/80 backdrop-blur-sm">
                 Close
               </Button>
@@ -404,7 +419,7 @@ export default function QuizTaker({ quiz, isOpen, onClose }: QuizTakerProps) {
                 Restart Quiz
               </Button>
             </div>
-          </>
+          </div>
         )}
       </DialogContent>
     </Dialog>

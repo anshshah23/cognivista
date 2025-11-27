@@ -17,7 +17,7 @@ export async function POST(request, { params }) {
     }
 
     const user = auth.user
-    const quizId = params.id
+    const { id: quizId } = await params
     const reqBody = await request.json()
     const { answers, timeSpent } = reqBody
 
@@ -44,28 +44,64 @@ export async function POST(request, { params }) {
     let score = 0
     const gradedAnswers = []
 
+    console.log(`Grading quiz: ${quiz.title} for user: ${user.email}`)
+
     for (const answer of answers) {
       const question = quiz.questions.id(answer.questionId)
 
       if (!question) {
+        console.log(`Question not found: ${answer.questionId}`)
         continue // Skip if question not found
       }
 
-      // Check if answer is correct
+      // Create a map of option _id to option index (opt1, opt2, etc.)
+      const optionIdMap = {}
+      question.options.forEach((option, index) => {
+        optionIdMap[String(option._id)] = `opt${index + 1}`
+      })
+
+      // Convert correctAnswers to the same format (they're already opt1, opt2, etc.)
+      const correctAnswersStr = question.correctAnswers.map(a => String(a))
+      
+      // Convert selected option ObjectIds to opt1, opt2, etc. format
+      const selectedOptionsAsOptIds = answer.selectedOptions
+        .map(optionId => optionIdMap[String(optionId)])
+        .filter(Boolean) // Remove any undefined values
+
+      console.log(`Question: ${question.text}`)
+      console.log(`Correct answers: ${correctAnswersStr.join(', ')}`)
+      console.log(`Selected answers (ObjectIds): ${answer.selectedOptions.join(', ')}`)
+      console.log(`Selected answers (mapped): ${selectedOptionsAsOptIds.join(', ')}`)
+
+      // Check if answer is correct (must match all correct answers)
       const isCorrect =
-        answer.selectedOptions.length === question.correctAnswers.length &&
-        answer.selectedOptions.every((opt) => question.correctAnswers.includes(opt))
+        selectedOptionsAsOptIds.length === correctAnswersStr.length &&
+        selectedOptionsAsOptIds.every((opt) => correctAnswersStr.includes(opt)) &&
+        correctAnswersStr.every((opt) => selectedOptionsAsOptIds.includes(opt))
+
+      console.log(`Is correct: ${isCorrect}`)
 
       if (isCorrect) {
         score++
       }
 
+      // Convert correct answer opt1, opt2 format back to ObjectIds for frontend display
+      const correctAnswerObjectIds = correctAnswersStr
+        .map(optId => {
+          const index = parseInt(optId.replace('opt', '')) - 1
+          return question.options[index] ? String(question.options[index]._id) : null
+        })
+        .filter(Boolean)
+
       gradedAnswers.push({
         questionId: answer.questionId,
-        selectedOptions: answer.selectedOptions,
+        selectedOptions: answer.selectedOptions.map(o => String(o)), // Store as strings for consistency
+        correctAnswers: correctAnswerObjectIds, // Return ObjectIds for frontend to match against option._id
         isCorrect,
       })
     }
+
+    console.log(`Final score: ${score}/${quiz.questions.length} (${Math.round((score / quiz.questions.length) * 100)}%)`)
 
     // Create quiz attempt record
     const quizAttempt = new QuizAttempt({

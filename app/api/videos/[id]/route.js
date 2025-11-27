@@ -10,13 +10,14 @@ connect()
 // Get a specific video
 export async function GET(request, { params }) {
   try {
+    const resolvedParams = await params;
     const auth = await authenticateUser(request)
     if (auth.error) {
       return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
     const user = auth.user
-    const videoId = params.id
+    const videoId = resolvedParams.id
 
     if (!mongoose.Types.ObjectId.isValid(videoId)) {
       return NextResponse.json({ error: "Invalid video ID" }, { status: 400 })
@@ -49,13 +50,14 @@ export async function GET(request, { params }) {
 // Update a video
 export async function PUT(request, { params }) {
   try {
+    const resolvedParams = await params;
     const auth = await authenticateUser(request)
     if (auth.error) {
       return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
     const user = auth.user
-    const videoId = params.id
+    const videoId = resolvedParams.id
     const reqBody = await request.json()
 
     if (!mongoose.Types.ObjectId.isValid(videoId)) {
@@ -98,13 +100,14 @@ export async function PUT(request, { params }) {
 // Delete a video
 export async function DELETE(request, { params }) {
   try {
+    const resolvedParams = await params;
     const auth = await authenticateUser(request)
     if (auth.error) {
       return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
     const user = auth.user
-    const videoId = params.id
+    const videoId = resolvedParams.id
 
     if (!mongoose.Types.ObjectId.isValid(videoId)) {
       return NextResponse.json({ error: "Invalid video ID" }, { status: 400 })
@@ -116,9 +119,9 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: "Video not found" }, { status: 404 })
     }
 
-    // Check if user owns this video
-    if (video.user.toString() !== user._id.toString() && !user.isAdmin) {
-      return NextResponse.json({ error: "You don't have permission to delete this video" }, { status: 403 })
+    // Only the author can delete this video
+    if (video.user.toString() !== user._id.toString()) {
+      return NextResponse.json({ error: "Only the author can delete this video" }, { status: 403 })
     }
 
     await Video.findByIdAndDelete(videoId)
